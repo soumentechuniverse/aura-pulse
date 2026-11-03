@@ -76,7 +76,7 @@ public class IslandOverlayService extends Service {
                     int scale=intent.getIntExtra(BatteryManager.EXTRA_SCALE,100);
                     int pct=(level>=0 && scale>0)?(level*100/scale):-1;
                     int status=intent.getIntExtra(BatteryManager.EXTRA_STATUS,-1);
-                    boolean charging=status==BatteryManager.BATTERY_STATUS_CHARGING || status==BatteryManager.BATTERY_STATUS_FULL;
+                    boolean charging=(status==BatteryManager.BATTERY_STATUS_CHARGING || status==BatteryManager.BATTERY_STATUS_FULL) && getSharedPreferences("aura_settings",MODE_PRIVATE).getBoolean("show_charging",true);
                     chargingActive=charging;
                     titleView.setText(charging?"⚡  Charging  •  "+pct+"%":"AURA ISLAND  •  "+pct+"% battery");
                     detailView.setText(charging?"Power connected":"Tap app to manage your island");
@@ -85,7 +85,7 @@ public class IslandOverlayService extends Service {
                 } else if(ACTION_NOTIFICATION.equals(intent.getAction())) {
                     String title=intent.getStringExtra(EXTRA_TITLE);
                     String body=intent.getStringExtra(EXTRA_TEXT);
-                    if(title!=null && !title.trim().isEmpty()) {
+                    if(getSharedPreferences("aura_settings",MODE_PRIVATE).getBoolean("show_notifications",true) && title!=null && !title.trim().isEmpty()) {
                         String safeBody=body==null?"New notification":body;
                         boolean duplicate=false;
                         for(String[] queued:notificationQueue) {
@@ -100,7 +100,7 @@ public class IslandOverlayService extends Service {
                         }
                     }
                 } else if(Intent.ACTION_HEADSET_PLUG.equals(intent.getAction())) {
-                    boolean plugged=intent.getIntExtra("state",0)==1;
+                    boolean plugged=intent.getIntExtra("state",0)==1 && getSharedPreferences("aura_settings",MODE_PRIVATE).getBoolean("show_earbuds",true);
                     headsetActive=plugged;
                     titleView.setText(plugged?"🎧  Headphones connected":"AURA ISLAND");
                     detailView.setText(plugged?"Audio device connected":"Headphones disconnected");
@@ -108,7 +108,7 @@ public class IslandOverlayService extends Service {
                     if(plugged) showCapsuleAnimated(); else hideIfIdle();
                 } else if("android.intent.action.PHONE_STATE".equals(intent.getAction())) {
                     String state=intent.getStringExtra(TelephonyManager.EXTRA_STATE);
-                    if(TelephonyManager.EXTRA_STATE_RINGING.equals(state)) {
+                    if(!getSharedPreferences("aura_settings",MODE_PRIVATE).getBoolean("show_calls",true)) { callActive=false; hideIfIdle(); } else if(TelephonyManager.EXTRA_STATE_RINGING.equals(state)) {
                         callActive=true; showCapsuleAnimated();
                         titleView.setText("☎  Incoming call"); detailView.setText("Your phone is ringing");
                     } else if(TelephonyManager.EXTRA_STATE_OFFHOOK.equals(state)) {
@@ -123,7 +123,7 @@ public class IslandOverlayService extends Service {
                 } else if(ACTION_TIMER.equals(intent.getAction())) {
                     long seconds=intent.getLongExtra("seconds",0);
                     if(countdown!=null) countdown.cancel();
-                    if(seconds>0) startCountdown(seconds);
+                    if(seconds>0 && getSharedPreferences("aura_settings",MODE_PRIVATE).getBoolean("show_timer",true)) startCountdown(seconds);
                 } else if("android.media.VOLUME_CHANGED_ACTION".equals(intent.getAction())) {
                     AudioManager audio=(AudioManager)getSystemService(AUDIO_SERVICE);
                     int current=audio==null?0:audio.getStreamVolume(AudioManager.STREAM_MUSIC);
@@ -137,7 +137,7 @@ public class IslandOverlayService extends Service {
                 } else if(ACTION_MEDIA.equals(intent.getAction())) {
                     String title=intent.getStringExtra(EXTRA_TITLE);
                     String artist=intent.getStringExtra(EXTRA_TEXT);
-                    mediaActive=title!=null && !title.isEmpty();
+                    mediaActive=title!=null && !title.isEmpty() && getSharedPreferences("aura_settings",MODE_PRIVATE).getBoolean("show_media",true);
                     if(mediaActive) {
                         showCapsuleAnimated();
                         titleView.setText("♫  "+title);
@@ -217,7 +217,7 @@ public class IslandOverlayService extends Service {
             if(type==AudioDeviceInfo.TYPE_WIRED_HEADPHONES || type==AudioDeviceInfo.TYPE_WIRED_HEADSET || type==AudioDeviceInfo.TYPE_BLUETOOTH_A2DP || type==AudioDeviceInfo.TYPE_BLUETOOTH_SCO || (Build.VERSION.SDK_INT>=31 && type==AudioDeviceInfo.TYPE_BLE_HEADSET)) { connected=true; break; }
         }
         headsetActive=connected;
-        if(connected) {
+        if(connected && getSharedPreferences("aura_settings",MODE_PRIVATE).getBoolean("show_earbuds",true)) {
             showCapsuleAnimated();
             titleView.setText("🎧  Headphones connected");
             detailView.setText("Audio device connected");
