@@ -334,13 +334,13 @@ public class IslandOverlayService extends Service {
         capsule.setOrientation(LinearLayout.VERTICAL);
         capsule.setGravity(Gravity.CENTER);
         capsule.setPadding(dp(22),dp(11),dp(22),dp(9));
+        SharedPreferences appearance=getSharedPreferences("aura_settings",MODE_PRIVATE);
+        int accent=appearance.getInt("accent",Color.rgb(101,232,255));
         GradientDrawable shape=new GradientDrawable();
-        shape.setColor(Color.rgb(0,0,0)); shape.setCornerRadius(dp(getSharedPreferences("aura_settings",MODE_PRIVATE).getInt("corner_radius",30)));
-        shape.setStroke(dp(1),Color.rgb(38,48,62)); capsule.setBackground(shape);
+        shape.setColor(Color.rgb(0,0,0)); shape.setCornerRadius(dp(appearance.getInt("corner_radius",30)));
+        shape.setStroke(dp(1),accent); capsule.setBackground(shape);
         titleView=new TextView(this); titleView.setText("AURA ISLAND"); titleView.setTextColor(Color.rgb(101,232,255));
         titleView.setTextSize(12); titleView.setTypeface(Typeface.DEFAULT,Typeface.BOLD); titleView.setMaxLines(1);
-        SharedPreferences prefs=getSharedPreferences("aura_settings",MODE_PRIVATE);
-        int accent=prefs.getInt("accent",Color.rgb(101,232,255));
         titleView.setTextColor(accent);
         detailView=new TextView(this); detailView.setText("Live activities appear here"); detailView.setTextColor(Color.WHITE);
         detailView.setTextSize(11); detailView.setMaxLines(1);
