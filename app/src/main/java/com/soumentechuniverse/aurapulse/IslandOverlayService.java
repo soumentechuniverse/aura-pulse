@@ -42,6 +42,7 @@ public class IslandOverlayService extends Service {
     private BroadcastReceiver updates;
     private final ArrayList<String[]> notificationQueue=new ArrayList<>();
     private boolean showingNotification=false;
+    private boolean expanded=false;
     private CountDownTimer countdown;
 
     @Override public void onCreate() {
@@ -178,6 +179,8 @@ public class IslandOverlayService extends Service {
         showingNotification=true;
         String[] item=notificationQueue.get(0);
         titleView.setText(item[0]);
+        expanded=false;
+        detailView.setMaxLines(1);
         detailView.setText(item[1]+(notificationQueue.size()>1?"  •  +"+(notificationQueue.size()-1):""));
         mediaControls.setVisibility(View.GONE);
     }
@@ -236,8 +239,9 @@ public class IslandOverlayService extends Service {
         windowManager.addView(capsule,params);
         capsule.setOnClickListener(v -> {
             if(showingNotification) {
-                if(notificationQueue.size()>1) { notificationQueue.add(notificationQueue.remove(0)); showQueuedNotification(); }
-                else dismissCurrentNotification();
+                expanded=!expanded;
+                detailView.setMaxLines(expanded?6:1);
+                if(!notificationQueue.isEmpty()) detailView.setText(notificationQueue.get(0)[1]+(notificationQueue.size()>1?"  •  +"+(notificationQueue.size()-1):""));
             } else mediaControls.setVisibility(mediaControls.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE);
         });
         capsule.setOnLongClickListener(v -> { stopSelf(); return true; });
