@@ -242,10 +242,10 @@ public class IslandOverlayService extends Service {
         });
         capsule.setOnLongClickListener(v -> { stopSelf(); return true; });
         capsule.setOnTouchListener(new View.OnTouchListener() {
-            private int startX,startY; private float downX,downY;
+            private int startX,startY; private float downX,downY; private long downAt;
             @Override public boolean onTouch(View v,MotionEvent event) {
                 if(event.getAction()==MotionEvent.ACTION_DOWN) {
-                    startX=params.x; startY=params.y; downX=event.getRawX(); downY=event.getRawY(); return false;
+                    startX=params.x; startY=params.y; downX=event.getRawX(); downY=event.getRawY(); downAt=System.currentTimeMillis(); return true;
                 }
                 if(event.getAction()==MotionEvent.ACTION_MOVE) {
                     params.x=startX+(int)(event.getRawX()-downX);
@@ -256,6 +256,11 @@ public class IslandOverlayService extends Service {
                 if(event.getAction()==MotionEvent.ACTION_UP) {
                     float dx=event.getRawX()-downX;
                     if(Math.abs(dx)>dp(85) && showingNotification) { dismissCurrentNotification(); return true; }
+                    float dy=event.getRawY()-downY;
+                    if(Math.abs(dx)<dp(10) && Math.abs(dy)<dp(10)) {
+                        if(System.currentTimeMillis()-downAt>600) stopSelf();
+                        else capsule.performClick();
+                    }
                     return true;
                 }
                 return false;
