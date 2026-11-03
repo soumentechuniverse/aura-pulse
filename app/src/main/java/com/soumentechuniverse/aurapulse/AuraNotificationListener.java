@@ -72,28 +72,25 @@ public class AuraNotificationListener extends NotificationListenerService {
         String fullTitle=appLabel+": "+title.toString();
         String body=text==null?"New notification":text.toString();
         if(body.length()>500) body=body.substring(0,500);
-        if(prefs.getBoolean("island_service_running",false)) {
-            Intent update=new Intent(IslandOverlayService.ACTION_NOTIFICATION);
-            update.setPackage(getPackageName());
-            update.putExtra(IslandOverlayService.EXTRA_TITLE,fullTitle);
-            update.putExtra(IslandOverlayService.EXTRA_TEXT,body);
-            sendBroadcast(update);
-        } else {
-            try {
-                String raw=prefs.getString("notification_queue","[]");
-                JSONArray queue=new JSONArray(raw);
-                boolean duplicate=false;
-                for(int i=0;i<queue.length();i++) {
-                    JSONObject item=queue.optJSONObject(i);
-                    if(item!=null && fullTitle.equals(item.optString("title")) && body.equals(item.optString("body"))) { duplicate=true; break; }
-                }
-                if(!duplicate) {
-                    if(queue.length()>=30) queue.remove(0);
-                    JSONObject item=new JSONObject(); item.put("title",fullTitle); item.put("body",body); queue.put(item);
-                    prefs.edit().putString("notification_queue",queue.toString()).apply();
-                }
-            } catch(Exception ignored) {}
-        }
+        try {
+            String raw=prefs.getString("notification_queue","[]");
+            JSONArray queue=new JSONArray(raw);
+            boolean duplicate=false;
+            for(int i=0;i<queue.length();i++) {
+                JSONObject item=queue.optJSONObject(i);
+                if(item!=null && fullTitle.equals(item.optString("title")) && body.equals(item.optString("body"))) { duplicate=true; break; }
+            }
+            if(!duplicate) {
+                if(queue.length()>=30) queue.remove(0);
+                JSONObject item=new JSONObject(); item.put("title",fullTitle); item.put("body",body); queue.put(item);
+                prefs.edit().putString("notification_queue",queue.toString()).apply();
+                Intent update=new Intent(IslandOverlayService.ACTION_NOTIFICATION);
+                update.setPackage(getPackageName());
+                update.putExtra(IslandOverlayService.EXTRA_TITLE,fullTitle);
+                update.putExtra(IslandOverlayService.EXTRA_TEXT,body);
+                sendBroadcast(update);
+            }
+        } catch(Exception ignored) {}
     }
 
 
