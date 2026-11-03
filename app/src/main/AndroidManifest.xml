@@ -21,7 +21,11 @@
         </activity>
         <service
             android:name=".IslandOverlayService"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Displays the user-enabled live island overlay for notifications, media and battery status." />
+        </service>
         <service
             android:name=".AuraNotificationListener"
             android:label="AURA PULSE Notification Access"
