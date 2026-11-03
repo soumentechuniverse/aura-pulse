@@ -81,7 +81,7 @@ public class IslandOverlayService extends Service {
                     titleView.setText(charging?"⚡  Charging  •  "+pct+"%":"AURA ISLAND  •  "+pct+"% battery");
                     detailView.setText(charging?"Power connected":"Tap app to manage your island");
                     mediaControls.setVisibility(View.GONE);
-                    if(charging) showCapsuleAnimated(); else hideIfIdle();
+                    if(charging) showCapsuleAnimated(); else { if(!mediaActive && !callActive && !headsetActive && notificationQueue.isEmpty() && !timerActive) showIdleBattery(pct); hideIfIdle(); }
                 } else if(ACTION_NOTIFICATION.equals(intent.getAction())) {
                     String title=intent.getStringExtra(EXTRA_TITLE);
                     String body=intent.getStringExtra(EXTRA_TEXT);
@@ -299,8 +299,22 @@ public class IslandOverlayService extends Service {
                 .setDuration(220).start();
         }
     }
+    private void showIdleBattery(int pct) {
+        if(titleView==null || detailView==null) return;
+        titleView.setText("AURA PULSE  •  "+(pct>=0?pct+"%":"Ready"));
+        detailView.setText("Always-on island");
+        mediaControls.setVisibility(View.GONE);
+    }
     private void hideIfIdle() {
-        if(notificationQueue.isEmpty() && !chargingActive && !headsetActive && !callActive && !mediaActive && !timerActive) capsule.setVisibility(View.GONE);
+        boolean idle=notificationQueue.isEmpty() && !chargingActive && !headsetActive && !callActive && !mediaActive && !timerActive;
+        boolean alwaysOn=getSharedPreferences("aura_settings",MODE_PRIVATE).getBoolean("always_on",true);
+        if(idle && alwaysOn) {
+            Intent battery=registerReceiver(null,new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+            int pct=-1;
+            if(battery!=null) { int level=battery.getIntExtra(BatteryManager.EXTRA_LEVEL,-1); int scale=battery.getIntExtra(BatteryManager.EXTRA_SCALE,100); if(level>=0&&scale>0)pct=level*100/scale; }
+            showIdleBattery(pct);
+            showCapsuleAnimated();
+        } else if(idle) capsule.setVisibility(View.GONE);
     }
     private TextView controlButton(String label, Runnable action) {
         TextView button=new TextView(this);
@@ -342,10 +356,12 @@ public class IslandOverlayService extends Service {
             android.graphics.PixelFormat.TRANSLUCENT);
         int positionMode=getSharedPreferences("aura_settings",MODE_PRIVATE).getInt("position_mode",0);
         params.gravity=(positionMode==2?Gravity.BOTTOM:positionMode==1?Gravity.CENTER_VERTICAL:Gravity.TOP)|Gravity.CENTER_HORIZONTAL;
-        params.width=dp(getSharedPreferences("aura_settings",MODE_PRIVATE).getInt("capsule_width",240));
+        params.width=dp(getSharedPreferences("aura_settings",MODE_PRIVATE).getInt("capsule_width",200));
         params.y=dp(positionMode==1?0:10);
         windowManager.addView(capsule,params);
-        capsule.setVisibility(View.GONE);
+        boolean alwaysOn=getSharedPreferences("aura_settings",MODE_PRIVATE).getBoolean("always_on",true);
+        capsule.setVisibility(alwaysOn?View.VISIBLE:View.GONE);
+        if(alwaysOn) showIdleBattery(-1);
         capsule.setOnClickListener(v -> {
             if(showingNotification) {
                 expanded=!expanded;
