@@ -14,6 +14,7 @@ import android.content.Intent;
 
 public class AuraNotificationListener extends NotificationListenerService {
     private static MediaController activeController;
+    private static String activeMediaPackage;
 
     @Override public void onNotificationPosted(StatusBarNotification sbn) {
         if(sbn==null || sbn.getPackageName().equals(getPackageName())) return;
@@ -29,6 +30,7 @@ public class AuraNotificationListener extends NotificationListenerService {
             if(tokenValue instanceof MediaSession.Token) {
                 try {
                     activeController=new MediaController(this,(MediaSession.Token)tokenValue);
+                    activeMediaPackage=sbn.getPackageName();
                     MediaMetadata metadata=activeController.getMetadata();
                     if(metadata!=null) {
                         String title=metadata.getString(MediaMetadata.METADATA_KEY_TITLE);
@@ -55,6 +57,17 @@ public class AuraNotificationListener extends NotificationListenerService {
         update.putExtra(IslandOverlayService.EXTRA_TITLE,appLabel+": "+title.toString());
         update.putExtra(IslandOverlayService.EXTRA_TEXT,text==null?"New notification":text.toString());
         sendBroadcast(update);
+    }
+
+
+    @Override public void onNotificationRemoved(StatusBarNotification sbn) {
+        if(sbn!=null && activeMediaPackage!=null && activeMediaPackage.equals(sbn.getPackageName())) {
+            activeController=null; activeMediaPackage=null;
+            Intent stop=new Intent(IslandOverlayService.ACTION_MEDIA);
+            stop.setPackage(getPackageName());
+            stop.putExtra(IslandOverlayService.EXTRA_TITLE,"");
+            sendBroadcast(stop);
+        }
     }
 
     public static void togglePlayback() {
