@@ -180,7 +180,19 @@ public class MainActivity extends Activity {
             requestPermissions(new String[]{Manifest.permission.READ_PHONE_STATE},40);
         else Toast.makeText(this,"Phone state permission is already enabled",Toast.LENGTH_SHORT).show();
     }
+    private void requestNotificationPermission() {
+        if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},41);
+        else Toast.makeText(this,"Notification permission is already enabled",Toast.LENGTH_SHORT).show();
+    }
+    @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode,permissions,grantResults);
+        if(requestCode==41 && grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED) startIsland();
+    }
     private void startIsland() {
+        if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED) {
+            requestNotificationPermission(); return;
+        }
         if(Build.VERSION.SDK_INT>=23 && !Settings.canDrawOverlays(this)) {
             Toast.makeText(this,"Allow display over other apps first",Toast.LENGTH_LONG).show(); requestOverlay(); return;
         }
