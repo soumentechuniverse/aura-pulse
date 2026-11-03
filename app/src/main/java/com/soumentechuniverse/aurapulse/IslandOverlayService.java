@@ -11,6 +11,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.IBinder;
+import android.media.AudioManager;
 import android.view.MotionEvent;
 import android.telephony.TelephonyManager;
 import android.view.Gravity;
@@ -113,6 +114,8 @@ public class IslandOverlayService extends Service {
         mediaControls.addView(controlButton("⏮", () -> AuraNotificationListener.skipPrevious()));
         mediaControls.addView(controlButton("▶ / ❚❚", () -> AuraNotificationListener.togglePlayback()));
         mediaControls.addView(controlButton("⏭", () -> AuraNotificationListener.skipNext()));
+        mediaControls.addView(controlButton("－", () -> adjustVolume(false)));
+        mediaControls.addView(controlButton("＋", () -> adjustVolume(true)));
         mediaControls.setVisibility(View.GONE);
         capsule.addView(mediaControls);
         int type=Build.VERSION.SDK_INT>=26?WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY:WindowManager.LayoutParams.TYPE_PHONE;
@@ -142,6 +145,10 @@ public class IslandOverlayService extends Service {
                 return false;
             }
         });
+    }
+    private void adjustVolume(boolean up) {
+        AudioManager audio=(AudioManager)getSystemService(AUDIO_SERVICE);
+        if(audio!=null) audio.adjustStreamVolume(AudioManager.STREAM_MUSIC,up?AudioManager.ADJUST_RAISE:AudioManager.ADJUST_LOWER,AudioManager.FLAG_SHOW_UI);
     }
     private int dp(float v){return (int)(v*getResources().getDisplayMetrics().density+.5f);}
     @Override public int onStartCommand(Intent intent,int flags,int startId){return START_STICKY;}
