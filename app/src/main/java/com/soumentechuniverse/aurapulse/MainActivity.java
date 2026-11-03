@@ -111,7 +111,7 @@ public class MainActivity extends Activity {
     }
     private void about(LinearLayout root){
         root.addView(text("About AURA PULSE",27,textColor(),true));gap(root,6);root.addView(text("Your personal Dynamic Island for Android.",14,mutedColor(),false));gap(root,18);
-        LinearLayout p=panel(root);p.setGravity(Gravity.CENTER);TextView icon=text("◉",36,Color.WHITE,true);icon.setGravity(Gravity.CENTER);icon.setBackground(shape(Color.rgb(139,55,230),22,0));p.addView(icon,new LinearLayout.LayoutParams(dp(76),dp(76)));gap(p,12);p.addView(text("AURA PULSE",21,textColor(),true));p.addView(text("Version 1.3",13,mutedColor(),false));gap(p,8);p.addView(text("Created for Android • Offline-first",12,mutedColor(),false));
+        LinearLayout p=panel(root);p.setGravity(Gravity.CENTER);TextView icon=text("◉",36,Color.WHITE,true);icon.setGravity(Gravity.CENTER);icon.setBackground(shape(Color.rgb(139,55,230),22,0));p.addView(icon,new LinearLayout.LayoutParams(dp(76),dp(76)));gap(p,12);p.addView(text("AURA PULSE",21,textColor(),true));p.addView(text("Version 1.3",13,mutedColor(),false));gap(p,8);p.addView(text("Developed by Soumen Mondal",14,Color.rgb(91,211,245),true));gap(p,5);p.addView(text("Created for Android • Offline-first",12,mutedColor(),false));
         action(root,"ⓘ","App details","Permissions, battery, storage and Android app settings",this::openAppDetails);
         action(root,"🔋","Battery settings","Open Android battery settings",()->openSettings("android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS"));
         action(root,"▤","Data usage","Open Android data usage settings",()->openSettings("android.settings.DATA_USAGE_SETTINGS"));
