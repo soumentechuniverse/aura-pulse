@@ -200,9 +200,6 @@ public class MainActivity extends Activity {
         if(requestCode==41 && grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED) startIsland();
     }
     private void startIsland() {
-        if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED) {
-            requestNotificationPermission(); return;
-        }
         if(Build.VERSION.SDK_INT>=23 && !Settings.canDrawOverlays(this)) {
             Toast.makeText(this,"Allow display over other apps first",Toast.LENGTH_LONG).show(); requestOverlay(); return;
         }
