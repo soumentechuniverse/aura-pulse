@@ -1,6 +1,7 @@
 package com.soumentechuniverse.aurapulse;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -8,218 +9,127 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.TextView;
-import android.widget.Toast;
-import android.widget.CheckBox;
-import android.widget.EditText;
-import android.text.InputType;
-import android.app.AlertDialog;
+import android.widget.*;
 import android.content.SharedPreferences;
-import android.content.pm.ResolveInfo;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.List;
+import android.text.InputType;
+import java.util.*;
 
 public class MainActivity extends Activity {
     private boolean lightTheme=false;
-    private int dp(float v) { return (int)(v * getResources().getDisplayMetrics().density + .5f); }
-    private GradientDrawable bg(int color,int radius) {
-        if(lightTheme && (color==Color.BLACK || color==Color.rgb(17,23,36))) color=Color.rgb(239,244,250);
-        GradientDrawable d=new GradientDrawable(); d.setColor(color); d.setCornerRadius(dp(radius));
-        d.setStroke(dp(1),Color.rgb(42,57,78)); return d;
+    private String currentTab="Home";
+    private SharedPreferences prefs;
+    private int dp(float v){return (int)(v*getResources().getDisplayMetrics().density+.5f);}
+    private int pageColor(){return lightTheme?Color.rgb(246,249,253):Color.rgb(9,13,20);}
+    private int panelColor(){return lightTheme?Color.WHITE:Color.rgb(24,32,43);}
+    private int textColor(){return lightTheme?Color.rgb(22,31,45):Color.WHITE;}
+    private int mutedColor(){return lightTheme?Color.rgb(91,105,122):Color.rgb(166,179,196);}
+    private GradientDrawable shape(int color,int radius,int stroke){
+        GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));
+        if(stroke!=0)d.setStroke(dp(1),stroke);return d;
     }
-    private TextView label(String s,int size,int color,boolean bold) {
-        if(lightTheme && color==Color.WHITE) color=Color.rgb(20,29,43);
-        else if(lightTheme && color==Color.rgb(151,164,184)) color=Color.rgb(82,96,116);
-        else if(lightTheme && color==Color.rgb(145,158,178)) color=Color.rgb(91,105,125);
-        else if(lightTheme && color==Color.rgb(133,146,165)) color=Color.rgb(91,105,125);
-        TextView t=new TextView(this); t.setText(s); t.setTextSize(size); t.setTextColor(color);
-        if(bold)t.setTypeface(Typeface.DEFAULT,Typeface.BOLD); return t;
+    private TextView text(String s,int size,int color,boolean bold){
+        TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);
+        if(bold)t.setTypeface(Typeface.DEFAULT,Typeface.BOLD);return t;
     }
-    private void gap(LinearLayout p,int h) { View v=new View(this); p.addView(v,new LinearLayout.LayoutParams(1,dp(h))); }
-    @Override public void onCreate(Bundle b) {
-        super.onCreate(b);
-        lightTheme=getSharedPreferences("aura_settings",MODE_PRIVATE).getBoolean("light_theme",false);
-        buildScreen();
+    private void gap(LinearLayout p,int h){View v=new View(this);p.addView(v,new LinearLayout.LayoutParams(1,dp(h)));}
+    @Override public void onCreate(Bundle b){super.onCreate(b);prefs=getSharedPreferences("aura_settings",MODE_PRIVATE);lightTheme=prefs.getBoolean("light_theme",false);showTab("Home");}
+    @Override protected void onResume(){super.onResume();if(prefs!=null){lightTheme=prefs.getBoolean("light_theme",false);showTab(currentTab);}}
+    private LinearLayout vertical(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);return l;}
+    private LinearLayout panel(LinearLayout root){
+        LinearLayout p=vertical();p.setPadding(dp(16),dp(16),dp(16),dp(16));p.setBackground(shape(panelColor(),22,lightTheme?Color.rgb(225,231,239):Color.rgb(35,48,62)));
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(14);root.addView(p,lp);return p;
     }
-    @Override protected void onResume(){super.onResume(); lightTheme=getSharedPreferences("aura_settings",MODE_PRIVATE).getBoolean("light_theme",false); buildScreen();}
-    private void buildScreen() {
-        int pageColor=lightTheme?Color.rgb(247,249,252):Color.rgb(8,11,20);
-        getWindow().setStatusBarColor(pageColor);
-        getWindow().setNavigationBarColor(pageColor);
-        ScrollView scroll=new ScrollView(this);
-        LinearLayout page=new LinearLayout(this); page.setOrientation(LinearLayout.VERTICAL);
-        page.setPadding(dp(22),dp(24),dp(22),dp(30)); page.setBackgroundColor(pageColor);
-        scroll.addView(page);
-        page.addView(label("A U R A   P U L S E",13,Color.rgb(101,232,255),true));
-        gap(page,16); page.addView(label("Your phone.\nA little more alive.",32,Color.WHITE,true));
-        gap(page,8); page.addView(label("A Dynamic Island experience, made for Android.",14,Color.rgb(151,164,184),false));
-        gap(page,24);
-        LinearLayout preview=new LinearLayout(this); preview.setOrientation(LinearLayout.VERTICAL);
-        preview.setGravity(Gravity.CENTER); preview.setPadding(dp(18),dp(18),dp(18),dp(18)); preview.setBackground(bg(Color.BLACK,28));
-        preview.addView(label("●  AURA ISLAND",11,Color.rgb(101,232,255),true)); gap(preview,8);
-        preview.addView(label("Live activities • Smart capsule",16,Color.WHITE,true));
-        gap(page,18); page.addView(preview,new LinearLayout.LayoutParams(-1,dp(112)));
-        gap(page,24); page.addView(label("SETUP & CONTROLS",12,Color.rgb(101,232,255),true)); gap(page,10);
-        addAction(page,"1","Allow display over other apps","Required for the floating island",v->requestOverlay());
-        addAction(page,"2","Enable notification access","Required for notifications and supported music players",v->startActivity(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")));
-        addAction(page,"3","Enable phone state access","Allows incoming and ongoing call status",v->requestPhonePermission());
-        addAction(page,"4","Allow notifications","Shows the persistent AURA PULSE running indicator",v->requestNotificationPermission());
-        addAction(page,"▶","Start AURA Island","Show the live capsule over other apps",v->startIsland());
-        addAction(page,"■","Stop AURA Island","Hide the floating capsule",v->stopService(new Intent(this,IslandOverlayService.class)));
-        addAction(page,"◷","Start a countdown timer","Show a live timer inside AURA Island",v->showTimerDialog());
-        gap(page,18); page.addView(label("PERSONALIZE YOUR ISLAND",12,Color.rgb(101,232,255),true)); gap(page,10);
-        addCustomization(page);
-        gap(page,18); page.addView(label("NOTIFICATION APP FILTER",12,Color.rgb(101,232,255),true)); gap(page,6);
-        page.addView(label("Turn off apps you do not want to appear in the island.",12,Color.rgb(145,158,178),false)); gap(page,10);
-        addAppFilters(page);
-        gap(page,18); page.addView(label("FEATURES",12,Color.rgb(101,232,255),true)); gap(page,10);
-        addFeature(page,"♫","Music Island","Track information and playback buttons when supported");
-        addFeature(page,"ϟ","Battery & Charging","Live battery percentage and charging state");
-        addFeature(page,"◉","Notification Island","Notification previews from other apps");
-        addFeature(page,"☎","Call Island","Incoming and ongoing call status (permission required)");
-        addFeature(page,"♬","Headphone Detection","Wired headset connection status");
-        gap(page,12);
-        page.addView(label("Compatibility: Android 6.0 and newer. Some features depend on phone brand, Android version, app media-session support and permissions. Battery restrictions may affect background operation.",12,Color.rgb(133,146,165),false));
-        setContentView(scroll);
+    private void heading(LinearLayout root,String s){TextView t=text(s,13,Color.rgb(91,211,245),true);root.addView(t);gap(root,10);}
+    private void button(LinearLayout root,String s,Runnable action){
+        TextView b=text(s,13,textColor(),true);b.setGravity(Gravity.CENTER);b.setPadding(dp(12),dp(12),dp(12),dp(12));
+        b.setBackground(shape(lightTheme?Color.rgb(231,239,248):Color.rgb(48,62,80),14,0));
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(dp(3),0,dp(3),0);root.addView(b,lp);b.setOnClickListener(v->action.run());
     }
-
-    private void addCustomization(LinearLayout root) {
-        SharedPreferences p=getSharedPreferences("aura_settings",MODE_PRIVATE);
-        LinearLayout row=new LinearLayout(this); row.setOrientation(LinearLayout.VERTICAL);
-        row.setPadding(dp(14),dp(14),dp(14),dp(14)); row.setBackground(bg(Color.rgb(17,23,36),18));
-        row.addView(label("Capsule appearance",15,Color.WHITE,true)); gap(row,8);
-        LinearLayout buttons=new LinearLayout(this); buttons.setOrientation(LinearLayout.HORIZONTAL);
-        addSmallButton(buttons,"Compact",v->{p.edit().putInt("capsule_width",190).apply(); refreshIsland();});
-        addSmallButton(buttons,"Standard",v->{p.edit().putInt("capsule_width",240).apply(); refreshIsland();});
-        addSmallButton(buttons,"Wide",v->{p.edit().putInt("capsule_width",290).apply(); refreshIsland();});
-        row.addView(buttons); gap(row,8);
-        LinearLayout colors=new LinearLayout(this); colors.setOrientation(LinearLayout.HORIZONTAL);
-        addSmallButton(colors,"Cyan",v->{p.edit().putInt("accent",Color.rgb(101,232,255)).apply();refreshIsland();});
-        addSmallButton(colors,"Purple",v->{p.edit().putInt("accent",Color.rgb(190,130,255)).apply();refreshIsland();});
-        addSmallButton(colors,"Green",v->{p.edit().putInt("accent",Color.rgb(100,240,170)).apply();refreshIsland();});
-        row.addView(colors); gap(row,8);
-        LinearLayout shapes=new LinearLayout(this); shapes.setOrientation(LinearLayout.HORIZONTAL);
-        addSmallButton(shapes,"Pill",v->{p.edit().putInt("corner_radius",40).apply();refreshIsland();});
-        addSmallButton(shapes,"Rounded",v->{p.edit().putInt("corner_radius",22).apply();refreshIsland();});
-        addSmallButton(shapes,"Soft",v->{p.edit().putInt("corner_radius",14).apply();refreshIsland();});
-        row.addView(shapes); gap(row,8);
-        LinearLayout positions=new LinearLayout(this); positions.setOrientation(LinearLayout.HORIZONTAL);
-        addSmallButton(positions,"Top",v->{p.edit().putInt("position_mode",0).apply();refreshIsland();});
-        addSmallButton(positions,"Center",v->{p.edit().putInt("position_mode",1).apply();refreshIsland();});
-        addSmallButton(positions,"Bottom",v->{p.edit().putInt("position_mode",2).apply();refreshIsland();});
-        row.addView(positions); gap(row,8);
-        LinearLayout theme=new LinearLayout(this); theme.setOrientation(LinearLayout.HORIZONTAL);
-        addSmallButton(theme,"Dark",v->{p.edit().putBoolean("light_theme",false).apply();lightTheme=false;buildScreen();});
-        addSmallButton(theme,"Light",v->{p.edit().putBoolean("light_theme",true).apply();lightTheme=true;buildScreen();});
-        row.addView(theme);
-        root.addView(row,new LinearLayout.LayoutParams(-1,-2));
+    private void action(LinearLayout root,String icon,String title,String sub,Runnable run){
+        LinearLayout row=vertical();row.setPadding(dp(14),dp(13),dp(14),dp(13));row.setBackground(shape(lightTheme?Color.rgb(255,255,255):Color.rgb(17,24,34),16,0));
+        row.addView(text(icon+"   "+title,15,textColor(),true));gap(row,4);row.addView(text(sub,12,mutedColor(),false));
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(8);root.addView(row,lp);row.setOnClickListener(v->run.run());
     }
-    private void addSmallButton(LinearLayout row,String text,View.OnClickListener click) {
-        TextView b=label(text,12,Color.WHITE,true); b.setGravity(Gravity.CENTER);
-        b.setPadding(dp(10),dp(10),dp(10),dp(10)); b.setBackground(bg(Color.rgb(35,48,68),12));
-        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1); lp.setMargins(dp(3),0,dp(3),0);
-        row.addView(b,lp); b.setOnClickListener(click);
+    private void showTab(String tab){
+        currentTab=tab;lightTheme=prefs.getBoolean("light_theme",false);
+        getWindow().setStatusBarColor(pageColor());getWindow().setNavigationBarColor(pageColor());
+        LinearLayout base=vertical();base.setBackgroundColor(pageColor());
+        ScrollView scroll=new ScrollView(this);LinearLayout content=vertical();content.setPadding(dp(20),dp(22),dp(20),dp(18));scroll.addView(content,new ScrollView.LayoutParams(-1,-2));
+        base.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+        if("Home".equals(tab))home(content);else if("Activities".equals(tab))activities(content);else if("Customize".equals(tab))customize(content);else if("Apps".equals(tab))apps(content);else about(content);
+        LinearLayout nav=new LinearLayout(this);nav.setGravity(Gravity.CENTER);nav.setPadding(dp(5),dp(8),dp(5),dp(8));nav.setBackgroundColor(lightTheme?Color.WHITE:Color.rgb(17,24,32));
+        String[] tabs={"Home","Activities","Customize","Apps","About"};String[] icons={"⌂","◉","☷","▦","ⓘ"};
+        for(int i=0;i<tabs.length;i++){final String name=tabs[i];LinearLayout item=vertical();item.setGravity(Gravity.CENTER);TextView ic=text(icons[i],21,name.equals(tab)?Color.rgb(117,199,255):mutedColor(),true);ic.setGravity(Gravity.CENTER);TextView tx=text(name,11,name.equals(tab)?textColor():mutedColor(),true);tx.setGravity(Gravity.CENTER);item.addView(ic);item.addView(tx);if(name.equals(tab))item.setBackground(shape(lightTheme?Color.rgb(225,239,253):Color.rgb(48,64,83),18,0));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(58),1);nav.addView(item,lp);item.setOnClickListener(v->showTab(name));}
+        base.addView(nav,new LinearLayout.LayoutParams(-1,dp(66)));setContentView(base);
     }
-    private void refreshIsland() {
-        if(Build.VERSION.SDK_INT>=23 && Settings.canDrawOverlays(this)) {
-            stopService(new Intent(this,IslandOverlayService.class));
-            startService(new Intent(this,IslandOverlayService.class));
-        }
+    private void home(LinearLayout root){
+        root.addView(text("A U R A   P U L S E",13,Color.rgb(91,211,245),true));gap(root,13);
+        root.addView(text("Your phone.\nA little more alive.",31,textColor(),true));gap(root,7);
+        root.addView(text("A complete Dynamic Island experience for Android.",14,mutedColor(),false));gap(root,20);
+        LinearLayout p=panel(root);p.setGravity(Gravity.CENTER);p.setBackground(shape(Color.BLACK,34,Color.rgb(61,76,94)));
+        TextView capsule=text("●     AURA PULSE       ▮▮",14,Color.WHITE,true);capsule.setGravity(Gravity.CENTER);capsule.setPadding(dp(24),dp(13),dp(24),dp(13));capsule.setBackground(shape(Color.rgb(34,39,49),40,Color.rgb(88,103,125)));p.addView(capsule);gap(p,12);
+        p.addView(text("Live capsule preview",14,Color.WHITE,true));p.addView(text("Camera-centered • Music • Notifications",11,Color.LTGRAY,false));
+        heading(root,"ISLAND CONTROL");
+        action(root,"◉","Island is on / off","Show or hide the floating capsule",()->{if(Settings.canDrawOverlays(this))stopService(new Intent(this,IslandOverlayService.class));else requestOverlay();});
+        action(root,"▶","Start AURA Island","Display the capsule over your apps",this::startIsland);
+        action(root,"◷","Start countdown timer","Choose a timer from 1 to 1440 minutes",this::showTimerDialog);
+        heading(root,"QUICK SWITCHES");switchRow(root,"Notifications","show_notifications",true);switchRow(root,"Music & media","show_media",true);switchRow(root,"Calls","show_calls",true);switchRow(root,"Charging","show_charging",true);switchRow(root,"Earbuds","show_earbuds",true);switchRow(root,"Timer","show_timer",true);
+        heading(root,"PREVIEW STYLE");LinearLayout row=new LinearLayout(this);button(row,"Pill",()->saveString("preview_style","pill"));button(row,"Banner",()->saveString("preview_style","banner"));button(row,"Card",()->saveString("preview_style","card"));root.addView(row);
     }
-    private void addAppFilters(LinearLayout root) {
-        SharedPreferences prefs=getSharedPreferences("aura_settings",MODE_PRIVATE);
-        Set<String> saved=prefs.getStringSet("blocked_apps",new HashSet<String>());
-        final HashSet<String> blocked=new HashSet<>(saved==null?new HashSet<String>():saved);
-        Intent query=new Intent(Intent.ACTION_MAIN,null); query.addCategory(Intent.CATEGORY_LAUNCHER);
-        List<ResolveInfo> apps=getPackageManager().queryIntentActivities(query,0);
-        apps.sort((a,b)->String.valueOf(a.loadLabel(getPackageManager())).compareToIgnoreCase(String.valueOf(b.loadLabel(getPackageManager()))));
-        int shown=0;
-        for(ResolveInfo info:apps) {
-            String pkg=info.activityInfo.packageName;
-            if(pkg.equals(getPackageName())) continue;
-            CheckBox cb=new CheckBox(this);
-            cb.setText(info.loadLabel(getPackageManager())+"  ("+pkg+")");
-            cb.setTextColor(Color.rgb(225,232,244)); cb.setTextSize(12);
-            cb.setButtonTintList(android.content.res.ColorStateList.valueOf(Color.rgb(101,232,255)));
-            cb.setChecked(blocked.contains(pkg));
-            cb.setOnCheckedChangeListener((button,checked)->{
-                if(checked) blocked.add(pkg); else blocked.remove(pkg);
-                prefs.edit().putStringSet("blocked_apps",new HashSet<>(blocked)).apply();
-            });
-            root.addView(cb); shown++;
-        }
-        if(shown==0) root.addView(label("No launchable apps found.",12,Color.LTGRAY,false));
-        root.addView(label("Checked apps are blocked. The list includes launchable apps on your phone.",11,Color.rgb(133,146,165),false));
+    private void activities(LinearLayout root){
+        root.addView(text("Activities",29,textColor(),true));gap(root,6);root.addView(text("Choose an activity to preview or control.",14,mutedColor(),false));gap(root,18);
+        action(root,"▣","Messages","Notification previews and app alerts",()->showTab("Apps"));
+        action(root,"♫","Music & Media","Track title, artist, artwork and playback controls",()->Toast.makeText(this,"Music appears when a supported player is playing.",Toast.LENGTH_LONG).show());
+        action(root,"◷","Timer","Start a live countdown",this::showTimerDialog);
+        action(root,"⚡","Charging","Battery level and charging status",()->Toast.makeText(this,"Charging activity appears when the phone is connected to power.",Toast.LENGTH_SHORT).show());
+        action(root,"☎","Calls","Incoming and ongoing call status",()->openAppDetails());
+        action(root,"♬","Earbuds","Wired and Bluetooth audio connection",()->Toast.makeText(this,"Connect an audio device to preview this activity.",Toast.LENGTH_SHORT).show());
     }
-
-
-    private void showTimerDialog() {
-        EditText input=new EditText(this);
-        input.setHint("Minutes (e.g. 5)");
-        input.setInputType(InputType.TYPE_CLASS_NUMBER);
-        new AlertDialog.Builder(this).setTitle("AURA Countdown").setMessage("How many minutes?")
-            .setView(input).setNegativeButton("Cancel",null).setPositiveButton("Start",(dialog,which)->{
-                try {
-                    long minutes=Long.parseLong(input.getText().toString().trim());
-                    if(minutes<1 || minutes>1440) throw new NumberFormatException();
-                    Intent timer=new Intent(this,IslandOverlayService.class);
-                    timer.setAction(IslandOverlayService.ACTION_TIMER);
-                    timer.putExtra("seconds",minutes*60);
-                    if(Build.VERSION.SDK_INT>=23 && !Settings.canDrawOverlays(this)) requestOverlay();
-                    else { startService(timer); Toast.makeText(this,"Countdown started",Toast.LENGTH_SHORT).show(); }
-                } catch(Exception e) { Toast.makeText(this,"Enter 1 to 1440 minutes",Toast.LENGTH_SHORT).show(); }
-            }).show();
+    private void customize(LinearLayout root){
+        root.addView(text("Customize",29,textColor(),true));gap(root,6);root.addView(text("Make the island match your phone.",14,mutedColor(),false));gap(root,18);
+        LinearLayout p=panel(root);p.addView(text("Capsule width",16,textColor(),true));LinearLayout r=new LinearLayout(this);button(r,"Compact",()->setInt("capsule_width",190));button(r,"Standard",()->setInt("capsule_width",240));button(r,"Wide",()->setInt("capsule_width",290));p.addView(r);gap(p,10);
+        p.addView(text("Accent colour",16,textColor(),true));LinearLayout c=new LinearLayout(this);button(c,"Cyan",()->setInt("accent",Color.rgb(101,232,255)));button(c,"Purple",()->setInt("accent",Color.rgb(190,130,255)));button(c,"Green",()->setInt("accent",Color.rgb(100,240,170)));p.addView(c);gap(p,10);
+        LinearLayout c2=new LinearLayout(this);button(c2,"Gold",()->setInt("accent",Color.rgb(255,204,102)));button(c2,"Pink",()->setInt("accent",Color.rgb(255,130,180)));button(c2,"Blue",()->setInt("accent",Color.rgb(100,165,255)));p.addView(c2);gap(p,10);
+        p.addView(text("Capsule shape",16,textColor(),true));LinearLayout s=new LinearLayout(this);button(s,"Pill",()->setInt("corner_radius",40));button(s,"Rounded",()->setInt("corner_radius",22));button(s,"Soft",()->setInt("corner_radius",14));p.addView(s);gap(p,10);
+        p.addView(text("Position",16,textColor(),true));LinearLayout pos=new LinearLayout(this);button(pos,"Top",()->setInt("position_mode",0));button(pos,"Center",()->setInt("position_mode",1));button(pos,"Bottom",()->setInt("position_mode",2));p.addView(pos);gap(p,10);
+        p.addView(text("Theme",16,textColor(),true));LinearLayout th=new LinearLayout(this);button(th,"Dark",()->{prefs.edit().putBoolean("light_theme",false).apply();restartUi();});button(th,"Light",()->{prefs.edit().putBoolean("light_theme",true).apply();restartUi();});p.addView(th);
+        action(root,"↻","Refresh capsule","Apply your appearance settings",this::refreshIsland);
     }
-
-    private void requestOverlay() {
-        if(Build.VERSION.SDK_INT>=23 && !Settings.canDrawOverlays(this)) {
-            Intent i=new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:"+getPackageName()));
-            startActivity(i);
-        } else Toast.makeText(this,"Display access is already enabled",Toast.LENGTH_SHORT).show();
+    private void apps(LinearLayout root){
+        root.addView(text("Apps & Notifications",27,textColor(),true));gap(root,6);root.addView(text("Choose which apps may show notifications in AURA PULSE. Checked apps are blocked.",13,mutedColor(),false));gap(root,15);
+        LinearLayout p=panel(root);Intent query=new Intent(Intent.ACTION_MAIN,null);query.addCategory(Intent.CATEGORY_LAUNCHER);List<ResolveInfo> list=getPackageManager().queryIntentActivities(query,0);
+        list.sort((a,b)->String.valueOf(a.loadLabel(getPackageManager())).compareToIgnoreCase(String.valueOf(b.loadLabel(getPackageManager()))));
+        Set<String> old=prefs.getStringSet("blocked_apps",new HashSet<String>());final HashSet<String> blocked=new HashSet<>(old==null?new HashSet<String>():old);
+        for(ResolveInfo info:list){String pkg=info.activityInfo.packageName;if(pkg.equals(getPackageName()))continue;CheckBox cb=new CheckBox(this);cb.setText(info.loadLabel(getPackageManager()));cb.setTextColor(textColor());cb.setTextSize(14);cb.setChecked(blocked.contains(pkg));cb.setOnCheckedChangeListener((v,checked)->{if(checked)blocked.add(pkg);else blocked.remove(pkg);prefs.edit().putStringSet("blocked_apps",new HashSet<>(blocked)).apply();});p.addView(cb);}
+        action(root,"⚙","Notification access","Open Android notification access settings",()->startActivity(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")));
     }
-    private void requestPhonePermission() {
-        if(Build.VERSION.SDK_INT>=23 && checkSelfPermission(Manifest.permission.READ_PHONE_STATE)!=PackageManager.PERMISSION_GRANTED)
-            requestPermissions(new String[]{Manifest.permission.READ_PHONE_STATE},40);
-        else Toast.makeText(this,"Phone state permission is already enabled",Toast.LENGTH_SHORT).show();
+    private void about(LinearLayout root){
+        root.addView(text("About AURA PULSE",27,textColor(),true));gap(root,6);root.addView(text("Your personal Dynamic Island for Android.",14,mutedColor(),false));gap(root,18);
+        LinearLayout p=panel(root);p.setGravity(Gravity.CENTER);TextView icon=text("◉",36,Color.WHITE,true);icon.setGravity(Gravity.CENTER);icon.setBackground(shape(Color.rgb(139,55,230),22,0));p.addView(icon,new LinearLayout.LayoutParams(dp(76),dp(76)));gap(p,12);p.addView(text("AURA PULSE",21,textColor(),true));p.addView(text("Version 1.3",13,mutedColor(),false));gap(p,8);p.addView(text("Created for Android • Offline-first",12,mutedColor(),false));
+        action(root,"ⓘ","App details","Permissions, battery, storage and Android app settings",this::openAppDetails);
+        action(root,"🔋","Battery settings","Open Android battery settings",()->openSettings("android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS"));
+        action(root,"▤","Data usage","Open Android data usage settings",()->openSettings("android.settings.DATA_USAGE_SETTINGS"));
+        action(root,"◷","Screen time","Open Android usage access settings",()->openSettings("android.settings.USAGE_ACCESS_SETTINGS"));
+        action(root,"文","App language","Open Android app language settings",()->openSettings("android.settings.APP_LOCALE_SETTINGS"));
+        action(root,"🔔","Notification settings","Manage AURA PULSE notifications",()->openSettings("android.settings.APP_NOTIFICATION_SETTINGS"));
+        action(root,"🔒","Privacy","AURA PULSE is designed to work locally without an internet connection.",()->new AlertDialog.Builder(this).setTitle("Privacy").setMessage("Notification and display features run on your device. Android notification access is required to show selected notifications.").setPositiveButton("OK",null).show());
     }
-    private void requestNotificationPermission() {
-        if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)
-            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},41);
-        else Toast.makeText(this,"Notification permission is already enabled",Toast.LENGTH_SHORT).show();
+    private void switchRow(LinearLayout root,String title,String key,boolean def){
+        LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);row.setPadding(dp(12),dp(9),dp(8),dp(9));row.setBackground(shape(panelColor(),15,0));TextView t=text(title,15,textColor(),false);row.addView(t,new LinearLayout.LayoutParams(0,-2,1));Switch sw=new Switch(this);sw.setChecked(prefs.getBoolean(key,def));sw.setOnCheckedChangeListener((b,on)->prefs.edit().putBoolean(key,on).apply());row.addView(sw);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=dp(7);root.addView(row,lp);
     }
-    @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode,permissions,grantResults);
-        if(requestCode==41 && grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED) startIsland();
-    }
-    private void startIsland() {
-        if(Build.VERSION.SDK_INT>=23 && !Settings.canDrawOverlays(this)) {
-            Toast.makeText(this,"Allow display over other apps first",Toast.LENGTH_LONG).show(); requestOverlay(); return;
-        }
-        startService(new Intent(this,IslandOverlayService.class));
-        Toast.makeText(this,"AURA Island started",Toast.LENGTH_SHORT).show();
-    }
-    private void addAction(LinearLayout root,String n,String title,String sub,View.OnClickListener click) {
-        LinearLayout row=new LinearLayout(this); row.setOrientation(LinearLayout.VERTICAL);
-        row.setPadding(dp(16),dp(14),dp(16),dp(14)); row.setBackground(bg(Color.rgb(17,23,36),18));
-        row.addView(label(n+"  "+title,16,Color.WHITE,true)); gap(row,5);
-        row.addView(label(sub,12,Color.rgb(145,158,178),false));
-        root.addView(row,new LinearLayout.LayoutParams(-1,-2)); gap(root,10); row.setOnClickListener(click);
-    }
-    private void addFeature(LinearLayout root,String icon,String title,String sub) {
-        LinearLayout row=new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(14),dp(12),dp(14),dp(12)); row.setBackground(bg(Color.rgb(17,23,36),18));
-        TextView badge=label(icon,22,Color.rgb(101,232,255),true); badge.setGravity(Gravity.CENTER);
-        row.addView(badge,new LinearLayout.LayoutParams(dp(42),dp(42)));
-        LinearLayout text=new LinearLayout(this); text.setOrientation(LinearLayout.VERTICAL); text.setPadding(dp(12),0,0,0);
-        text.addView(label(title,15,Color.WHITE,true)); text.addView(label(sub,11,Color.rgb(145,158,178),false));
-        row.addView(text,new LinearLayout.LayoutParams(0,-2,1)); root.addView(row); gap(root,9);
-    }
+    private void setInt(String key,int value){prefs.edit().putInt(key,value).apply();refreshIsland();Toast.makeText(this,"Saved",Toast.LENGTH_SHORT).show();}
+    private void saveString(String key,String value){prefs.edit().putString(key,value).apply();Toast.makeText(this,"Preview style saved",Toast.LENGTH_SHORT).show();}
+    private void restartUi(){showTab("Customize");}
+    private void refreshIsland(){if(Build.VERSION.SDK_INT>=23&&Settings.canDrawOverlays(this)){stopService(new Intent(this,IslandOverlayService.class));startService(new Intent(this,IslandOverlayService.class));}}
+    private void showTimerDialog(){EditText input=new EditText(this);input.setHint("Minutes (e.g. 5)");input.setInputType(InputType.TYPE_CLASS_NUMBER);new AlertDialog.Builder(this).setTitle("AURA Countdown").setMessage("Choose 1 to 1440 minutes").setView(input).setNegativeButton("Cancel",null).setPositiveButton("Start",(d,w)->{try{long m=Long.parseLong(input.getText().toString().trim());if(m<1||m>1440)throw new Exception();Intent i=new Intent(this,IslandOverlayService.class);i.setAction(IslandOverlayService.ACTION_TIMER);i.putExtra("seconds",m*60);if(Build.VERSION.SDK_INT>=23&&!Settings.canDrawOverlays(this))requestOverlay();else startService(i);}catch(Exception e){Toast.makeText(this,"Enter 1 to 1440 minutes",Toast.LENGTH_SHORT).show();}}).show();}
+    private void requestOverlay(){if(Build.VERSION.SDK_INT>=23&&!Settings.canDrawOverlays(this)){Intent i=new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:"+getPackageName()));startActivity(i);}else Toast.makeText(this,"Display access is already enabled",Toast.LENGTH_SHORT).show();}
+    private void startIsland(){if(Build.VERSION.SDK_INT>=23&&!Settings.canDrawOverlays(this)){requestOverlay();return;}startService(new Intent(this,IslandOverlayService.class));Toast.makeText(this,"AURA Island started",Toast.LENGTH_SHORT).show();}
+    private void openAppDetails(){Intent i=new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+getPackageName()));startActivity(i);}
+    private void openSettings(String action){try{startActivity(new Intent(action));}catch(Exception e){openAppDetails();}}
 }
