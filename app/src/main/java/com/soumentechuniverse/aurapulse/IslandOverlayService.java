@@ -12,6 +12,7 @@ import android.os.BatteryManager;
 import android.os.Build;
 import android.os.IBinder;
 import android.media.AudioManager;
+import android.content.SharedPreferences;
 import android.view.MotionEvent;
 import android.telephony.TelephonyManager;
 import android.view.Gravity;
@@ -106,6 +107,9 @@ public class IslandOverlayService extends Service {
         shape.setStroke(dp(1),Color.rgb(38,48,62)); capsule.setBackground(shape);
         titleView=new TextView(this); titleView.setText("AURA ISLAND"); titleView.setTextColor(Color.rgb(101,232,255));
         titleView.setTextSize(12); titleView.setTypeface(Typeface.DEFAULT,Typeface.BOLD); titleView.setMaxLines(1);
+        SharedPreferences prefs=getSharedPreferences("aura_settings",MODE_PRIVATE);
+        int accent=prefs.getInt("accent",Color.rgb(101,232,255));
+        titleView.setTextColor(accent);
         detailView=new TextView(this); detailView.setText("Live activities appear here"); detailView.setTextColor(Color.WHITE);
         detailView.setTextSize(11); detailView.setMaxLines(1);
         capsule.addView(titleView); capsule.addView(detailView);
@@ -124,6 +128,7 @@ public class IslandOverlayService extends Service {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             android.graphics.PixelFormat.TRANSLUCENT);
         params.gravity=Gravity.TOP|Gravity.CENTER_HORIZONTAL;
+        params.width=dp(getSharedPreferences("aura_settings",MODE_PRIVATE).getInt("capsule_width",240));
         params.y=dp(10);
         windowManager.addView(capsule,params);
         capsule.setOnClickListener(v -> {
