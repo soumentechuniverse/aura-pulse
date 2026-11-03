@@ -31,8 +31,16 @@ public class AuraNotificationListener extends NotificationListenerService {
                 try {
                     activeController=new MediaController(this,(MediaSession.Token)tokenValue);
                     activeMediaPackage=sbn.getPackageName();
+                    android.media.session.PlaybackState playback=activeController.getPlaybackState();
                     MediaMetadata metadata=activeController.getMetadata();
                     if(metadata!=null) {
+                        if(playback==null || (playback.getState()!=android.media.session.PlaybackState.STATE_PLAYING && playback.getState()!=android.media.session.PlaybackState.STATE_BUFFERING)) {
+                            Intent paused=new Intent(IslandOverlayService.ACTION_MEDIA);
+                            paused.setPackage(getPackageName());
+                            paused.putExtra(IslandOverlayService.EXTRA_TITLE,"");
+                            sendBroadcast(paused);
+                            return;
+                        }
                         String title=metadata.getString(MediaMetadata.METADATA_KEY_TITLE);
                         String artist=metadata.getString(MediaMetadata.METADATA_KEY_ARTIST);
                         if(artist==null) artist=metadata.getString(MediaMetadata.METADATA_KEY_ALBUM);
