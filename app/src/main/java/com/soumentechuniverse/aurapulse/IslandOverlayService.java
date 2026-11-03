@@ -72,6 +72,7 @@ public class IslandOverlayService extends Service {
                     titleView.setText(charging?"⚡  Charging  •  "+pct+"%":"AURA ISLAND  •  "+pct+"% battery");
                     detailView.setText(charging?"Power connected":"Tap app to manage your island");
                     mediaControls.setVisibility(View.GONE);
+                    if(charging) capsule.setVisibility(View.VISIBLE); else hideIfIdle();
                 } else if(ACTION_NOTIFICATION.equals(intent.getAction())) {
                     String title=intent.getStringExtra(EXTRA_TITLE);
                     String body=intent.getStringExtra(EXTRA_TEXT);
@@ -87,6 +88,7 @@ public class IslandOverlayService extends Service {
                     titleView.setText(plugged?"🎧  Headphones connected":"AURA ISLAND");
                     detailView.setText(plugged?"Audio device connected":"Headphones disconnected");
                     mediaControls.setVisibility(View.GONE);
+                    if(plugged) capsule.setVisibility(View.VISIBLE); else hideIfIdle();
                 } else if("android.intent.action.PHONE_STATE".equals(intent.getAction())) {
                     String state=intent.getStringExtra(TelephonyManager.EXTRA_STATE);
                     if(TelephonyManager.EXTRA_STATE_RINGING.equals(state)) {
@@ -120,6 +122,7 @@ public class IslandOverlayService extends Service {
                     AudioManager audio=(AudioManager)getSystemService(AUDIO_SERVICE);
                     int current=audio==null?0:audio.getStreamVolume(AudioManager.STREAM_MUSIC);
                     int max=audio==null?1:audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                    capsule.setVisibility(View.VISIBLE);
                     titleView.setText("♫  Media volume  "+current+"/"+max);
                     detailView.setText("Use island controls to adjust volume");
                     mediaControls.setVisibility(View.VISIBLE);
