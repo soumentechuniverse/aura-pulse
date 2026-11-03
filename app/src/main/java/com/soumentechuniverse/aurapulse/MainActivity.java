@@ -28,27 +28,35 @@ import java.util.Set;
 import java.util.List;
 
 public class MainActivity extends Activity {
+    private boolean lightTheme=false;
     private int dp(float v) { return (int)(v * getResources().getDisplayMetrics().density + .5f); }
     private GradientDrawable bg(int color,int radius) {
+        if(lightTheme && (color==Color.BLACK || color==Color.rgb(17,23,36))) color=Color.rgb(239,244,250);
         GradientDrawable d=new GradientDrawable(); d.setColor(color); d.setCornerRadius(dp(radius));
         d.setStroke(dp(1),Color.rgb(42,57,78)); return d;
     }
     private TextView label(String s,int size,int color,boolean bold) {
+        if(lightTheme && color==Color.WHITE) color=Color.rgb(20,29,43);
+        else if(lightTheme && color==Color.rgb(151,164,184)) color=Color.rgb(82,96,116);
+        else if(lightTheme && color==Color.rgb(145,158,178)) color=Color.rgb(91,105,125);
+        else if(lightTheme && color==Color.rgb(133,146,165)) color=Color.rgb(91,105,125);
         TextView t=new TextView(this); t.setText(s); t.setTextSize(size); t.setTextColor(color);
         if(bold)t.setTypeface(Typeface.DEFAULT,Typeface.BOLD); return t;
     }
     private void gap(LinearLayout p,int h) { View v=new View(this); p.addView(v,new LinearLayout.LayoutParams(1,dp(h))); }
     @Override public void onCreate(Bundle b) {
         super.onCreate(b);
-        getWindow().setStatusBarColor(Color.rgb(8,11,20));
-        getWindow().setNavigationBarColor(Color.rgb(8,11,20));
+        lightTheme=getSharedPreferences("aura_settings",MODE_PRIVATE).getBoolean("light_theme",false);
         buildScreen();
     }
-    @Override protected void onResume(){super.onResume(); buildScreen();}
+    @Override protected void onResume(){super.onResume(); lightTheme=getSharedPreferences("aura_settings",MODE_PRIVATE).getBoolean("light_theme",false); buildScreen();}
     private void buildScreen() {
+        int pageColor=lightTheme?Color.rgb(247,249,252):Color.rgb(8,11,20);
+        getWindow().setStatusBarColor(pageColor);
+        getWindow().setNavigationBarColor(pageColor);
         ScrollView scroll=new ScrollView(this);
         LinearLayout page=new LinearLayout(this); page.setOrientation(LinearLayout.VERTICAL);
-        page.setPadding(dp(22),dp(24),dp(22),dp(30)); page.setBackgroundColor(Color.rgb(8,11,20));
+        page.setPadding(dp(22),dp(24),dp(22),dp(30)); page.setBackgroundColor(pageColor);
         scroll.addView(page);
         page.addView(label("A U R A   P U L S E",13,Color.rgb(101,232,255),true));
         gap(page,16); page.addView(label("Your phone.\nA little more alive.",32,Color.WHITE,true));
@@ -98,8 +106,8 @@ public class MainActivity extends Activity {
         addSmallButton(colors,"Green",v->{p.edit().putInt("accent",Color.rgb(100,240,170)).apply();refreshIsland();});
         row.addView(colors); gap(row,8);
         LinearLayout theme=new LinearLayout(this); theme.setOrientation(LinearLayout.HORIZONTAL);
-        addSmallButton(theme,"Dark",v->{p.edit().putBoolean("light_theme",false).apply();});
-        addSmallButton(theme,"Light",v->{p.edit().putBoolean("light_theme",true).apply();});
+        addSmallButton(theme,"Dark",v->{p.edit().putBoolean("light_theme",false).apply();lightTheme=false;buildScreen();});
+        addSmallButton(theme,"Light",v->{p.edit().putBoolean("light_theme",true).apply();lightTheme=true;buildScreen();});
         row.addView(theme);
         root.addView(row,new LinearLayout.LayoutParams(-1,-2));
     }
