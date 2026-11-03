@@ -79,11 +79,11 @@ public class MainActivity extends Activity {
         action(root,"◉","Island is on / off","Show or hide the floating capsule",()->{if(Settings.canDrawOverlays(this))stopService(new Intent(this,IslandOverlayService.class));else requestOverlay();});
         action(root,"▶","Start AURA Island","Display the capsule over your apps",this::startIsland);
         action(root,"◷","Start countdown timer","Choose a timer from 1 to 1440 minutes",this::showTimerDialog);
-        heading(root,"QUICK SWITCHES");switchRow(root,"Notifications","show_notifications",true);switchRow(root,"Music & media","show_media",true);switchRow(root,"Calls","show_calls",true);switchRow(root,"Charging","show_charging",true);switchRow(root,"Earbuds","show_earbuds",true);switchRow(root,"Timer","show_timer",true);
+        heading(root,"QUICK SWITCHES");switchRow(root,"Always show capsule","always_on",true);switchRow(root,"Notifications","show_notifications",true);switchRow(root,"Music & media","show_media",true);switchRow(root,"Calls","show_calls",true);switchRow(root,"Charging","show_charging",true);switchRow(root,"Earbuds","show_earbuds",true);switchRow(root,"Timer","show_timer",true);
         heading(root,"PREVIEW STYLE");LinearLayout row=new LinearLayout(this);button(row,"Pill",()->saveString("preview_style","pill"));button(row,"Banner",()->saveString("preview_style","banner"));button(row,"Card",()->saveString("preview_style","card"));root.addView(row);
     }
     private void activities(LinearLayout root){
-        root.addView(text("Activities",29,textColor(),true));gap(root,6);root.addView(text("Choose an activity to preview or control.",14,mutedColor(),false));gap(root,18);
+        root.addView(text("Activities",29,textColor(),true));gap(root,6);root.addView(text("Capsule stays visible when Always show capsule is enabled. Event-driven updates help reduce battery use.",14,mutedColor(),false));gap(root,18);
         action(root,"▣","Messages","Notification previews and app alerts",()->showTab("Apps"));
         action(root,"♫","Music & Media","Track title, artist, artwork and playback controls",()->Toast.makeText(this,"Music appears when a supported player is playing.",Toast.LENGTH_LONG).show());
         action(root,"◷","Timer","Start a live countdown",this::showTimerDialog);
