@@ -25,7 +25,7 @@ public class AuraNotificationListener extends NotificationListenerService {
         if(n==null || n.extras==null) return;
         Bundle extras=n.extras;
 
-        if(Build.VERSION.SDK_INT>=21) {
+        if(Build.VERSION.SDK_INT>=21 && prefs.getBoolean("show_media",true)) {
             Object tokenValue=extras.get(Notification.EXTRA_MEDIA_SESSION);
             if(tokenValue instanceof MediaSession.Token) {
                 try {
@@ -55,6 +55,7 @@ public class AuraNotificationListener extends NotificationListenerService {
             }
         }
 
+        if(!prefs.getBoolean("show_notifications",true)) return;
         CharSequence title=extras.getCharSequence(Notification.EXTRA_TITLE);
         CharSequence text=extras.getCharSequence(Notification.EXTRA_TEXT);
         if(title==null || title.length()==0) return;
