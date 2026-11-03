@@ -31,6 +31,8 @@ import android.telephony.TelephonyManager;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.DisplayCutout;
+import android.graphics.Rect;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -360,10 +362,10 @@ public class IslandOverlayService extends Service {
             WindowManager.LayoutParams.WRAP_CONTENT,WindowManager.LayoutParams.WRAP_CONTENT,type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             android.graphics.PixelFormat.TRANSLUCENT);
-        int positionMode=getSharedPreferences("aura_settings",MODE_PRIVATE).getInt("position_mode",0);
-        params.gravity=(positionMode==2?Gravity.BOTTOM:positionMode==1?Gravity.CENTER_VERTICAL:Gravity.TOP)|Gravity.CENTER_HORIZONTAL;
+        // Fixed Dynamic Island placement: centered on the physical front-camera cutout.
+        params.gravity=Gravity.TOP|Gravity.CENTER_HORIZONTAL;
         params.width=dp(getSharedPreferences("aura_settings",MODE_PRIVATE).getInt("capsule_width",200));
-        params.y=dp(positionMode==1?0:10);
+        params.y=getCameraAlignedTopOffset();
         windowManager.addView(capsule,params);
         boolean alwaysOn=getSharedPreferences("aura_settings",MODE_PRIVATE).getBoolean("always_on",true);
         capsule.setVisibility(alwaysOn?View.VISIBLE:View.GONE);
@@ -375,23 +377,19 @@ public class IslandOverlayService extends Service {
                 if(!notificationQueue.isEmpty()) detailView.setText(notificationQueue.get(0)[1]+(notificationQueue.size()>1?"  •  +"+(notificationQueue.size()-1):""));
             } else mediaControls.setVisibility(mediaControls.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE);
         });
-        capsule.setOnLongClickListener(v -> { stopSelf(); return true; });
+        // Gestures affect content only; the capsule is fixed and cannot be dragged.
         capsule.setOnTouchListener(new View.OnTouchListener() {
-            private int startX,startY; private float downX,downY; private long downAt;
+            private float downX,downY;
             @Override public boolean onTouch(View v,MotionEvent event) {
                 if(event.getAction()==MotionEvent.ACTION_DOWN) {
-                    startX=params.x; startY=params.y; downX=event.getRawX(); downY=event.getRawY(); downAt=System.currentTimeMillis(); return true;
-                }
-                if(event.getAction()==MotionEvent.ACTION_MOVE) {
-                    params.x=startX+(int)(event.getRawX()-downX);
-                    params.y=startY+(int)(event.getRawY()-downY);
-                    try{windowManager.updateViewLayout(capsule,params);}catch(Exception ignored){}
-                    return true;
+                    downX=event.getRawX(); downY=event.getRawY(); return true;
                 }
                 if(event.getAction()==MotionEvent.ACTION_UP) {
                     float dx=event.getRawX()-downX;
-                    if(Math.abs(dx)>dp(85) && showingNotification) { dismissCurrentNotification(); return true; }
                     float dy=event.getRawY()-downY;
+                    if(Math.abs(dx)>dp(85) && Math.abs(dx)>Math.abs(dy) && showingNotification) {
+                        dismissCurrentNotification(); return true;
+                    }
                     if(dy < -dp(55) && Math.abs(dy)>Math.abs(dx)) {
                         expanded=false;
                         detailView.setMaxLines(1);
@@ -402,16 +400,30 @@ public class IslandOverlayService extends Service {
                         }
                         return true;
                     }
-                    if(Math.abs(dx)<dp(10) && Math.abs(dy)<dp(10)) {
-                        if(System.currentTimeMillis()-downAt>600) stopSelf();
-                        else capsule.performClick();
-                    }
+                    if(Math.abs(dx)<dp(10) && Math.abs(dy)<dp(10)) capsule.performClick();
                     return true;
                 }
-                return false;
+                return true;
             }
         });
     }
+    private int getCameraAlignedTopOffset() {
+        if (Build.VERSION.SDK_INT >= 30) {
+            try {
+                android.view.WindowMetrics metrics = windowManager.getCurrentWindowMetrics();
+                DisplayCutout cutout = metrics.getWindowInsets().getDisplayCutout();
+                if (cutout != null && !cutout.getBoundingRects().isEmpty()) {
+                    Rect best = null;
+                    for (Rect rect : cutout.getBoundingRects()) {
+                        if (rect != null && rect.width() > 0 && (best == null || rect.width() > best.width())) best = rect;
+                    }
+                    if (best != null) return Math.max(0, best.centerY() - dp(21));
+                }
+            } catch (Exception ignored) {}
+        }
+        return dp(0);
+    }
+
     private void adjustVolume(boolean up) {
         AudioManager audio=(AudioManager)getSystemService(AUDIO_SERVICE);
         if(audio!=null) audio.adjustStreamVolume(AudioManager.STREAM_MUSIC,up?AudioManager.ADJUST_RAISE:AudioManager.ADJUST_LOWER,AudioManager.FLAG_SHOW_UI);
