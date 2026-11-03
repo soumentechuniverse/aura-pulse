@@ -76,7 +76,7 @@ public class MainActivity extends Activity {
         TextView capsule=text("●     AURA PULSE       ▮▮",14,Color.WHITE,true);capsule.setGravity(Gravity.CENTER);capsule.setPadding(dp(24),dp(13),dp(24),dp(13));capsule.setBackground(shape(Color.rgb(34,39,49),40,Color.rgb(88,103,125)));p.addView(capsule);gap(p,12);
         p.addView(text("Live capsule preview",14,Color.WHITE,true));p.addView(text("Camera-centered • Music • Notifications",11,Color.LTGRAY,false));
         heading(root,"ISLAND CONTROL");
-        action(root,"◉","Island is on / off","Show or hide the floating capsule",()->{if(Settings.canDrawOverlays(this))stopService(new Intent(this,IslandOverlayService.class));else requestOverlay();});
+        action(root,"◉","Island is on / off","Turn the always-on island service on or off",()->{boolean enabled=prefs.getBoolean("always_on",true);prefs.edit().putBoolean("always_on",!enabled).apply();if(enabled){stopService(new Intent(this,IslandOverlayService.class));Toast.makeText(this,"AURA Island turned off",Toast.LENGTH_SHORT).show();}else startIsland();showTab("Home");});
         action(root,"▶","Start AURA Island","Display the capsule over your apps",this::startIsland);
         action(root,"◷","Start countdown timer","Choose a timer from 1 to 1440 minutes",this::showTimerDialog);
         heading(root,"QUICK SWITCHES");switchRow(root,"Always show capsule","always_on",true);switchRow(root,"Notifications","show_notifications",true);switchRow(root,"Music & media","show_media",true);switchRow(root,"Calls","show_calls",true);switchRow(root,"Charging","show_charging",true);switchRow(root,"Earbuds","show_earbuds",true);switchRow(root,"Timer","show_timer",true);
