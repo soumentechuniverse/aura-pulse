@@ -233,7 +233,13 @@ public class IslandOverlayService extends Service {
         if(audio!=null) audio.adjustStreamVolume(AudioManager.STREAM_MUSIC,up?AudioManager.ADJUST_RAISE:AudioManager.ADJUST_LOWER,AudioManager.FLAG_SHOW_UI);
     }
     private int dp(float v){return (int)(v*getResources().getDisplayMetrics().density+.5f);}
-    @Override public int onStartCommand(Intent intent,int flags,int startId){return START_STICKY;}
+    @Override public int onStartCommand(Intent intent,int flags,int startId){
+        if(intent!=null && ACTION_TIMER.equals(intent.getAction())) {
+            Intent update=new Intent(ACTION_TIMER); update.setPackage(getPackageName());
+            update.putExtra("seconds",intent.getLongExtra("seconds",0)); sendBroadcast(update);
+        }
+        return START_STICKY;
+    }
     @Override public void onDestroy(){
         if(countdown!=null) countdown.cancel();
         if(updates!=null) try{unregisterReceiver(updates);}catch(Exception ignored){}
