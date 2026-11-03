@@ -18,6 +18,9 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.CheckBox;
+import android.widget.EditText;
+import android.text.InputType;
+import android.app.AlertDialog;
 import android.content.SharedPreferences;
 import android.content.pm.ResolveInfo;
 import java.util.HashSet;
@@ -62,6 +65,7 @@ public class MainActivity extends Activity {
         addAction(page,"3","Enable phone state access","Allows incoming and ongoing call status",v->requestPhonePermission());
         addAction(page,"▶","Start AURA Island","Show the live capsule over other apps",v->startIsland());
         addAction(page,"■","Stop AURA Island","Hide the floating capsule",v->stopService(new Intent(this,IslandOverlayService.class)));
+        addAction(page,"◷","Start a countdown timer","Show a live timer inside AURA Island",v->showTimerDialog());
         gap(page,18); page.addView(label("PERSONALIZE YOUR ISLAND",12,Color.rgb(101,232,255),true)); gap(page,10);
         addCustomization(page);
         gap(page,18); page.addView(label("NOTIFICATION APP FILTER",12,Color.rgb(101,232,255),true)); gap(page,6);
@@ -134,6 +138,25 @@ public class MainActivity extends Activity {
         }
         if(shown==0) root.addView(label("No launchable apps found.",12,Color.LTGRAY,false));
         root.addView(label("Checked apps are blocked. Up to 35 installed apps are shown here.",11,Color.rgb(133,146,165),false));
+    }
+
+
+    private void showTimerDialog() {
+        EditText input=new EditText(this);
+        input.setHint("Minutes (e.g. 5)");
+        input.setInputType(InputType.TYPE_CLASS_NUMBER);
+        new AlertDialog.Builder(this).setTitle("AURA Countdown").setMessage("How many minutes?")
+            .setView(input).setNegativeButton("Cancel",null).setPositiveButton("Start",(dialog,which)->{
+                try {
+                    long minutes=Long.parseLong(input.getText().toString().trim());
+                    if(minutes<1 || minutes>1440) throw new NumberFormatException();
+                    Intent timer=new Intent(this,IslandOverlayService.class);
+                    timer.setAction(IslandOverlayService.ACTION_TIMER);
+                    timer.putExtra("seconds",minutes*60);
+                    if(Build.VERSION.SDK_INT>=23 && !Settings.canDrawOverlays(this)) requestOverlay();
+                    else { startService(timer); Toast.makeText(this,"Countdown started",Toast.LENGTH_SHORT).show(); }
+                } catch(Exception e) { Toast.makeText(this,"Enter 1 to 1440 minutes",Toast.LENGTH_SHORT).show(); }
+            }).show();
     }
 
     private void requestOverlay() {
