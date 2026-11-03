@@ -11,6 +11,8 @@ import android.os.Bundle;
 import android.content.SharedPreferences;
 import java.util.Set;
 import android.content.Intent;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class AuraNotificationListener extends NotificationListenerService {
     private static MediaController activeController;
@@ -57,15 +59,41 @@ public class AuraNotificationListener extends NotificationListenerService {
 
         if(!prefs.getBoolean("show_notifications",true)) return;
         CharSequence title=extras.getCharSequence(Notification.EXTRA_TITLE);
-        CharSequence text=extras.getCharSequence(Notification.EXTRA_TEXT);
-        if(title==null || title.length()==0) return;
-        Intent update=new Intent(IslandOverlayService.ACTION_NOTIFICATION);
-        update.setPackage(getPackageName());
+        CharSequence text=extras.getCharSequence(Notification.EXTRA_BIG_TEXT);
+        if(text==null || text.length()==0) text=extras.getCharSequence(Notification.EXTRA_TEXT);
+        if((title==null || title.length()==0) && n.tickerText!=null) title=n.tickerText;
+        if((title==null || title.length()==0) && Build.VERSION.SDK_INT>=24) {
+            CharSequence[] lines=extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES);
+            if(lines!=null && lines.length>0) { title=lines[0]; if(lines.length>1) text=lines[lines.length-1]; }
+        }
+        if(title==null || title.length()==0) title="New notification";
         String appLabel=sbn.getPackageName();
         try { appLabel=getPackageManager().getApplicationLabel(getPackageManager().getApplicationInfo(sbn.getPackageName(),0)).toString(); } catch(Exception ignored) {}
-        update.putExtra(IslandOverlayService.EXTRA_TITLE,appLabel+": "+title.toString());
-        update.putExtra(IslandOverlayService.EXTRA_TEXT,text==null?"New notification":text.toString());
-        sendBroadcast(update);
+        String fullTitle=appLabel+": "+title.toString();
+        String body=text==null?"New notification":text.toString();
+        if(body.length()>500) body=body.substring(0,500);
+        if(prefs.getBoolean("island_service_running",false)) {
+            Intent update=new Intent(IslandOverlayService.ACTION_NOTIFICATION);
+            update.setPackage(getPackageName());
+            update.putExtra(IslandOverlayService.EXTRA_TITLE,fullTitle);
+            update.putExtra(IslandOverlayService.EXTRA_TEXT,body);
+            sendBroadcast(update);
+        } else {
+            try {
+                String raw=prefs.getString("notification_queue","[]");
+                JSONArray queue=new JSONArray(raw);
+                boolean duplicate=false;
+                for(int i=0;i<queue.length();i++) {
+                    JSONObject item=queue.optJSONObject(i);
+                    if(item!=null && fullTitle.equals(item.optString("title")) && body.equals(item.optString("body"))) { duplicate=true; break; }
+                }
+                if(!duplicate) {
+                    if(queue.length()>=30) queue.remove(0);
+                    JSONObject item=new JSONObject(); item.put("title",fullTitle); item.put("body",body); queue.put(item);
+                    prefs.edit().putString("notification_queue",queue.toString()).apply();
+                }
+            } catch(Exception ignored) {}
+        }
     }
 
 
