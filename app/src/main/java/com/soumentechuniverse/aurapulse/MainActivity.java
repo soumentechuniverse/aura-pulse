@@ -112,9 +112,9 @@ public class MainActivity extends Activity {
         addSmallButton(shapes,"Soft",v->{p.edit().putInt("corner_radius",14).apply();refreshIsland();});
         row.addView(shapes); gap(row,8);
         LinearLayout positions=new LinearLayout(this); positions.setOrientation(LinearLayout.HORIZONTAL);
-        addSmallButton(positions,"Top",v->{p.edit().putInt("position_y",10).apply();refreshIsland();});
-        addSmallButton(positions,"Lower",v->{p.edit().putInt("position_y",65).apply();refreshIsland();});
-        addSmallButton(positions,"Bottom",v->{p.edit().putInt("position_y",120).apply();refreshIsland();});
+        addSmallButton(positions,"Top",v->{p.edit().putInt("position_mode",0).apply();refreshIsland();});
+        addSmallButton(positions,"Center",v->{p.edit().putInt("position_mode",1).apply();refreshIsland();});
+        addSmallButton(positions,"Bottom",v->{p.edit().putInt("position_mode",2).apply();refreshIsland();});
         row.addView(positions); gap(row,8);
         LinearLayout theme=new LinearLayout(this); theme.setOrientation(LinearLayout.HORIZONTAL);
         addSmallButton(theme,"Dark",v->{p.edit().putBoolean("light_theme",false).apply();lightTheme=false;buildScreen();});
