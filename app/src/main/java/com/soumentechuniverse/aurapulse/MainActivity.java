@@ -71,6 +71,7 @@ public class MainActivity extends Activity {
         addAction(page,"1","Allow display over other apps","Required for the floating island",v->requestOverlay());
         addAction(page,"2","Enable notification access","Required for notifications and supported music players",v->startActivity(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")));
         addAction(page,"3","Enable phone state access","Allows incoming and ongoing call status",v->requestPhonePermission());
+        addAction(page,"4","Allow notifications","Shows the persistent AURA PULSE running indicator",v->requestNotificationPermission());
         addAction(page,"▶","Start AURA Island","Show the live capsule over other apps",v->startIsland());
         addAction(page,"■","Stop AURA Island","Hide the floating capsule",v->stopService(new Intent(this,IslandOverlayService.class)));
         addAction(page,"◷","Start a countdown timer","Show a live timer inside AURA Island",v->showTimerDialog());
@@ -118,8 +119,10 @@ public class MainActivity extends Activity {
         row.addView(b,lp); b.setOnClickListener(click);
     }
     private void refreshIsland() {
-        if(Build.VERSION.SDK_INT>=23 && Settings.canDrawOverlays(this))
+        if(Build.VERSION.SDK_INT>=23 && Settings.canDrawOverlays(this)) {
+            stopService(new Intent(this,IslandOverlayService.class));
             startService(new Intent(this,IslandOverlayService.class));
+        }
     }
     private void addAppFilters(LinearLayout root) {
         SharedPreferences prefs=getSharedPreferences("aura_settings",MODE_PRIVATE);
@@ -142,10 +145,9 @@ public class MainActivity extends Activity {
                 prefs.edit().putStringSet("blocked_apps",new HashSet<>(blocked)).apply();
             });
             root.addView(cb); shown++;
-            if(shown>=35) break;
         }
         if(shown==0) root.addView(label("No launchable apps found.",12,Color.LTGRAY,false));
-        root.addView(label("Checked apps are blocked. Up to 35 installed apps are shown here.",11,Color.rgb(133,146,165),false));
+        root.addView(label("Checked apps are blocked. The list includes launchable apps on your phone.",11,Color.rgb(133,146,165),false));
     }
 
 
