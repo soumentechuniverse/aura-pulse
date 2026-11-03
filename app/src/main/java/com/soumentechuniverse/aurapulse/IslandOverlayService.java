@@ -108,7 +108,6 @@ public class IslandOverlayService extends Service {
                 } else if(ACTION_TIMER.equals(intent.getAction())) {
                     long seconds=intent.getLongExtra("seconds",0);
                     if(countdown!=null) countdown.cancel();
-        if(Build.VERSION.SDK_INT>=23 && audioManager!=null && audioCallback!=null) audioManager.unregisterAudioDeviceCallback(audioCallback);
                     if(seconds>0) {
                         timerActive=true; capsule.setVisibility(View.VISIBLE);
                         countdown=new CountDownTimer(seconds*1000,1000) {
