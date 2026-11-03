@@ -55,8 +55,8 @@ public class IslandOverlayService extends Service {
         super.onCreate();
         startIslandForeground();
         windowManager=(WindowManager)getSystemService(WINDOW_SERVICE);
-        registerAudioDeviceMonitoring();
         createCapsule();
+        registerAudioDeviceMonitoring();
         restoreQueue();
         if(!notificationQueue.isEmpty()) showQueuedNotification();
         IntentFilter filter=new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
