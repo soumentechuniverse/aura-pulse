@@ -17,6 +17,12 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.CheckBox;
+import android.content.SharedPreferences;
+import android.content.pm.ResolveInfo;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.List;
 
 public class MainActivity extends Activity {
     private int dp(float v) { return (int)(v * getResources().getDisplayMetrics().density + .5f); }
@@ -56,6 +62,11 @@ public class MainActivity extends Activity {
         addAction(page,"3","Enable phone state access","Allows incoming and ongoing call status",v->requestPhonePermission());
         addAction(page,"▶","Start AURA Island","Show the live capsule over other apps",v->startIsland());
         addAction(page,"■","Stop AURA Island","Hide the floating capsule",v->stopService(new Intent(this,IslandOverlayService.class)));
+        gap(page,18); page.addView(label("PERSONALIZE YOUR ISLAND",12,Color.rgb(101,232,255),true)); gap(page,10);
+        addCustomization(page);
+        gap(page,18); page.addView(label("NOTIFICATION APP FILTER",12,Color.rgb(101,232,255),true)); gap(page,6);
+        page.addView(label("Turn off apps you do not want to appear in the island.",12,Color.rgb(145,158,178),false)); gap(page,10);
+        addAppFilters(page);
         gap(page,18); page.addView(label("FEATURES",12,Color.rgb(101,232,255),true)); gap(page,10);
         addFeature(page,"♫","Music Island","Track information and playback buttons when supported");
         addFeature(page,"ϟ","Battery & Charging","Live battery percentage and charging state");
@@ -66,7 +77,65 @@ public class MainActivity extends Activity {
         page.addView(label("Compatibility: Android 6.0 and newer. Some features depend on phone brand, Android version, app media-session support and permissions. Battery restrictions may affect background operation.",12,Color.rgb(133,146,165),false));
         setContentView(scroll);
     }
-    private void requestOverlay() {
+
+    private void addCustomization(LinearLayout root) {
+        SharedPreferences p=getSharedPreferences("aura_settings",MODE_PRIVATE);
+        LinearLayout row=new LinearLayout(this); row.setOrientation(LinearLayout.VERTICAL);
+        row.setPadding(dp(14),dp(14),dp(14),dp(14)); row.setBackground(bg(Color.rgb(17,23,36),18));
+        row.addView(label("Capsule appearance",15,Color.WHITE,true)); gap(row,8);
+        LinearLayout buttons=new LinearLayout(this); buttons.setOrientation(LinearLayout.HORIZONTAL);
+        addSmallButton(buttons,"Compact",v->{p.edit().putInt("capsule_width",190).apply(); refreshIsland();});
+        addSmallButton(buttons,"Standard",v->{p.edit().putInt("capsule_width",240).apply(); refreshIsland();});
+        addSmallButton(buttons,"Wide",v->{p.edit().putInt("capsule_width",290).apply(); refreshIsland();});
+        row.addView(buttons); gap(row,8);
+        LinearLayout colors=new LinearLayout(this); colors.setOrientation(LinearLayout.HORIZONTAL);
+        addSmallButton(colors,"Cyan",v->{p.edit().putInt("accent",Color.rgb(101,232,255)).apply();refreshIsland();});
+        addSmallButton(colors,"Purple",v->{p.edit().putInt("accent",Color.rgb(190,130,255)).apply();refreshIsland();});
+        addSmallButton(colors,"Green",v->{p.edit().putInt("accent",Color.rgb(100,240,170)).apply();refreshIsland();});
+        row.addView(colors); gap(row,8);
+        LinearLayout theme=new LinearLayout(this); theme.setOrientation(LinearLayout.HORIZONTAL);
+        addSmallButton(theme,"Dark",v->{p.edit().putBoolean("light_theme",false).apply();});
+        addSmallButton(theme,"Light",v->{p.edit().putBoolean("light_theme",true).apply();});
+        row.addView(theme);
+        root.addView(row,new LinearLayout.LayoutParams(-1,-2));
+    }
+    private void addSmallButton(LinearLayout row,String text,View.OnClickListener click) {
+        TextView b=label(text,12,Color.WHITE,true); b.setGravity(Gravity.CENTER);
+        b.setPadding(dp(10),dp(10),dp(10),dp(10)); b.setBackground(bg(Color.rgb(35,48,68),12));
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1); lp.setMargins(dp(3),0,dp(3),0);
+        row.addView(b,lp); b.setOnClickListener(click);
+    }
+    private void refreshIsland() {
+        if(Build.VERSION.SDK_INT>=23 && Settings.canDrawOverlays(this))
+            startService(new Intent(this,IslandOverlayService.class));
+    }
+    private void addAppFilters(LinearLayout root) {
+        SharedPreferences prefs=getSharedPreferences("aura_settings",MODE_PRIVATE);
+        Set<String> saved=prefs.getStringSet("blocked_apps",new HashSet<String>());
+        final HashSet<String> blocked=new HashSet<>(saved==null?new HashSet<String>():saved);
+        Intent query=new Intent(Intent.ACTION_MAIN,null); query.addCategory(Intent.CATEGORY_LAUNCHER);
+        List<ResolveInfo> apps=getPackageManager().queryIntentActivities(query,0);
+        apps.sort((a,b)->String.valueOf(a.loadLabel(getPackageManager())).compareToIgnoreCase(String.valueOf(b.loadLabel(getPackageManager()))));
+        int shown=0;
+        for(ResolveInfo info:apps) {
+            String pkg=info.activityInfo.packageName;
+            if(pkg.equals(getPackageName())) continue;
+            CheckBox cb=new CheckBox(this);
+            cb.setText(info.loadLabel(getPackageManager())+"  ("+pkg+")");
+            cb.setTextColor(Color.rgb(225,232,244)); cb.setTextSize(12);
+            cb.setButtonTintList(android.content.res.ColorStateList.valueOf(Color.rgb(101,232,255)));
+            cb.setChecked(blocked.contains(pkg));
+            cb.setOnCheckedChangeListener((button,checked)->{
+                if(checked) blocked.add(pkg); else blocked.remove(pkg);
+                prefs.edit().putStringSet("blocked_apps",new HashSet<>(blocked)).apply();
+            });
+            root.addView(cb); shown++;
+            if(shown>=35) break;
+        }
+        if(shown==0) root.addView(label("No launchable apps found.",12,Color.LTGRAY,false));
+        root.addView(label("Checked apps are blocked. Up to 35 installed apps are shown here.",11,Color.rgb(133,146,165),false));
+    }
+\n    private void requestOverlay() {
         if(Build.VERSION.SDK_INT>=23 && !Settings.canDrawOverlays(this)) {
             Intent i=new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:"+getPackageName()));
             startActivity(i);
