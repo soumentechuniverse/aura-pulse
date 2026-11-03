@@ -78,10 +78,15 @@ public class IslandOverlayService extends Service {
                     int status=intent.getIntExtra(BatteryManager.EXTRA_STATUS,-1);
                     boolean charging=(status==BatteryManager.BATTERY_STATUS_CHARGING || status==BatteryManager.BATTERY_STATUS_FULL) && getSharedPreferences("aura_settings",MODE_PRIVATE).getBoolean("show_charging",true);
                     chargingActive=charging;
-                    titleView.setText(charging?"⚡  Charging  •  "+pct+"%":"AURA ISLAND  •  "+pct+"% battery");
-                    detailView.setText(charging?"Power connected":"Tap app to manage your island");
-                    mediaControls.setVisibility(View.GONE);
-                    if(charging) showCapsuleAnimated(); else { if(!mediaActive && !callActive && !headsetActive && notificationQueue.isEmpty() && !timerActive) showIdleBattery(pct); hideIfIdle(); }
+                    if(charging) {
+                        titleView.setText("⚡  Charging  •  "+pct+"%");
+                        detailView.setText("Power connected");
+                        mediaControls.setVisibility(View.GONE);
+                        showCapsuleAnimated();
+                    } else if(!mediaActive && !callActive && !headsetActive && notificationQueue.isEmpty() && !timerActive) {
+                        showIdleBattery(pct);
+                        hideIfIdle();
+                    }
                 } else if(ACTION_NOTIFICATION.equals(intent.getAction())) {
                     String title=intent.getStringExtra(EXTRA_TITLE);
                     String body=intent.getStringExtra(EXTRA_TEXT);
