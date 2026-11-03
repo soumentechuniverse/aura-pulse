@@ -198,6 +198,11 @@ public class IslandOverlayService extends Service {
                     try{windowManager.updateViewLayout(capsule,params);}catch(Exception ignored){}
                     return true;
                 }
+                if(event.getAction()==MotionEvent.ACTION_UP) {
+                    float dx=event.getRawX()-downX;
+                    if(Math.abs(dx)>dp(85) && showingNotification) { dismissCurrentNotification(); return true; }
+                    return true;
+                }
                 return false;
             }
         });
