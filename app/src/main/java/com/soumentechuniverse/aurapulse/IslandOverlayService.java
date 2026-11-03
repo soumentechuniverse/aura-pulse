@@ -1,6 +1,11 @@
 package com.soumentechuniverse.aurapulse;
 
 import android.app.Service;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.pm.ServiceInfo;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -41,6 +46,7 @@ public class IslandOverlayService extends Service {
 
     @Override public void onCreate() {
         super.onCreate();
+        startIslandForeground();
         windowManager=(WindowManager)getSystemService(WINDOW_SERVICE);
         createCapsule();
         restoreQueue();
@@ -117,6 +123,26 @@ public class IslandOverlayService extends Service {
         if(battery!=null) updates.onReceive(this,battery);
     }
 
+
+
+    private void startIslandForeground() {
+        final String channelId="aura_island_service";
+        NotificationManager manager=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+        if(Build.VERSION.SDK_INT>=26) {
+            NotificationChannel channel=new NotificationChannel(channelId,"AURA PULSE Island",NotificationManager.IMPORTANCE_LOW);
+            channel.setDescription("Keeps your enabled AURA Island available.");
+            manager.createNotificationChannel(channel);
+        }
+        Intent open=new Intent(this,MainActivity.class);
+        PendingIntent pending=PendingIntent.getActivity(this,0,open,PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT>=23?PendingIntent.FLAG_IMMUTABLE:0));
+        Notification.Builder builder=Build.VERSION.SDK_INT>=26?new Notification.Builder(this,channelId):new Notification.Builder(this);
+        Notification notification=builder.setSmallIcon(android.R.drawable.ic_media_play)
+            .setContentTitle("AURA PULSE is active")
+            .setContentText("Your live island is running")
+            .setContentIntent(pending).setOngoing(true).setShowWhen(false).build();
+        if(Build.VERSION.SDK_INT>=34) startForeground(71,notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+        else startForeground(71,notification);
+    }
 
     private void saveQueue() {
         try {
