@@ -13,6 +13,8 @@ import android.os.Build;
 import android.os.IBinder;
 import android.media.AudioManager;
 import java.util.ArrayList;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import android.content.SharedPreferences;
 import android.view.MotionEvent;
 import android.telephony.TelephonyManager;
@@ -38,6 +40,8 @@ public class IslandOverlayService extends Service {
         super.onCreate();
         windowManager=(WindowManager)getSystemService(WINDOW_SERVICE);
         createCapsule();
+        restoreQueue();
+        if(!notificationQueue.isEmpty()) showQueuedNotification();
         IntentFilter filter=new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         filter.addAction(ACTION_NOTIFICATION);
         filter.addAction(ACTION_MEDIA);
@@ -59,6 +63,7 @@ public class IslandOverlayService extends Service {
                     String body=intent.getStringExtra(EXTRA_TEXT);
                     if(title!=null && !title.trim().isEmpty()) {
                         notificationQueue.add(new String[]{title,body==null?"New notification":body});
+                        saveQueue();
                         showQueuedNotification();
                     }
                 } else if(Intent.ACTION_HEADSET_PLUG.equals(intent.getAction())) {
@@ -91,6 +96,28 @@ public class IslandOverlayService extends Service {
         if(battery!=null) updates.onReceive(this,battery);
     }
 
+
+    private void saveQueue() {
+        try {
+            JSONArray array=new JSONArray();
+            for(String[] item:notificationQueue) {
+                JSONObject object=new JSONObject();
+                object.put("title",item[0]); object.put("body",item[1]); array.put(object);
+            }
+            getSharedPreferences("aura_settings",MODE_PRIVATE).edit().putString("notification_queue",array.toString()).apply();
+        } catch(Exception ignored) {}
+    }
+    private void restoreQueue() {
+        try {
+            String raw=getSharedPreferences("aura_settings",MODE_PRIVATE).getString("notification_queue","[]");
+            JSONArray array=new JSONArray(raw);
+            for(int i=0;i<array.length();i++) {
+                JSONObject item=array.getJSONObject(i);
+                notificationQueue.add(new String[]{item.optString("title"),item.optString("body")});
+            }
+        } catch(Exception ignored) {}
+    }
+
     private void showQueuedNotification() {
         if(notificationQueue.isEmpty()) { showingNotification=false; return; }
         showingNotification=true;
@@ -102,6 +129,7 @@ public class IslandOverlayService extends Service {
     private void dismissCurrentNotification() {
         if(showingNotification && !notificationQueue.isEmpty()) {
             notificationQueue.remove(0);
+            saveQueue();
             if(notificationQueue.isEmpty()) {
                 showingNotification=false;
                 titleView.setText("AURA ISLAND");
