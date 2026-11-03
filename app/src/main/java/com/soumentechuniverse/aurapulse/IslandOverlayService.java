@@ -86,10 +86,18 @@ public class IslandOverlayService extends Service {
                     String title=intent.getStringExtra(EXTRA_TITLE);
                     String body=intent.getStringExtra(EXTRA_TEXT);
                     if(title!=null && !title.trim().isEmpty()) {
-                        notificationQueue.add(new String[]{title,body==null?"New notification":body});
-                        showCapsuleAnimated();
-                        saveQueue();
-                        showQueuedNotification();
+                        String safeBody=body==null?"New notification":body;
+                        boolean duplicate=false;
+                        for(String[] queued:notificationQueue) {
+                            if(queued[0].equals(title) && queued[1].equals(safeBody)) { duplicate=true; break; }
+                        }
+                        if(!duplicate) {
+                            if(notificationQueue.size()>=30) notificationQueue.remove(0);
+                            notificationQueue.add(new String[]{title,safeBody});
+                            showCapsuleAnimated();
+                            saveQueue();
+                            showQueuedNotification();
+                        }
                     }
                 } else if(Intent.ACTION_HEADSET_PLUG.equals(intent.getAction())) {
                     boolean plugged=intent.getIntExtra("state",0)==1;
@@ -122,16 +130,32 @@ public class IslandOverlayService extends Service {
                     int max=audio==null?1:audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
                     showCapsuleAnimated();
                     titleView.setText("♫  Media volume  "+current+"/"+max);
-                    detailView.setText("Use island controls to adjust volume");
-                    mediaControls.setVisibility(View.VISIBLE);
+                    detailView.setText("Volume changed");
+                    mediaControls.setVisibility(View.GONE);
+                    uiHandler.removeCallbacksAndMessages(null);
+                    uiHandler.postDelayed(() -> hideIfIdle(), 2500L);
                 } else if(ACTION_MEDIA.equals(intent.getAction())) {
                     String title=intent.getStringExtra(EXTRA_TITLE);
                     String artist=intent.getStringExtra(EXTRA_TEXT);
                     mediaActive=title!=null && !title.isEmpty();
-                    if(mediaActive) showCapsuleAnimated(); else hideIfIdle();
-                    titleView.setText("♫  "+(title==null?"Now Playing":title));
-                    detailView.setText(artist==null?"Music":artist);
-                    mediaControls.setVisibility(View.VISIBLE);
+                    if(mediaActive) {
+                        showCapsuleAnimated();
+                        titleView.setText("♫  "+title);
+                        detailView.setText(artist==null?"Music":artist);
+                        mediaControls.setVisibility(View.VISIBLE);
+                    } else {
+                        mediaControls.setVisibility(View.GONE);
+                        if(!notificationQueue.isEmpty()) showQueuedNotification();
+                        else if(chargingActive) {
+                            titleView.setText("⚡  Charging");
+                            detailView.setText("Power connected");
+                            showCapsuleAnimated();
+                        } else if(callActive) {
+                            titleView.setText("☎  Call in progress");
+                            detailView.setText("Call active");
+                            showCapsuleAnimated();
+                        } else hideIfIdle();
+                    }
                 }
             }
         };
