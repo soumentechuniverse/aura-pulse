@@ -12,6 +12,7 @@ import android.os.BatteryManager;
 import android.os.Build;
 import android.os.IBinder;
 import android.media.AudioManager;
+import android.os.CountDownTimer;
 import java.util.ArrayList;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -27,6 +28,7 @@ import android.widget.TextView;
 public class IslandOverlayService extends Service {
     public static final String ACTION_NOTIFICATION = "com.soumentechuniverse.aurapulse.NOTIFICATION";
     public static final String ACTION_MEDIA = "com.soumentechuniverse.aurapulse.MEDIA";
+    public static final String ACTION_TIMER = "com.soumentechuniverse.aurapulse.TIMER";
     public static final String EXTRA_TITLE = "title";
     public static final String EXTRA_TEXT = "text";
     private WindowManager windowManager;
@@ -35,6 +37,7 @@ public class IslandOverlayService extends Service {
     private BroadcastReceiver updates;
     private final ArrayList<String[]> notificationQueue=new ArrayList<>();
     private boolean showingNotification=false;
+    private CountDownTimer countdown;
 
     @Override public void onCreate() {
         super.onCreate();
@@ -45,6 +48,7 @@ public class IslandOverlayService extends Service {
         IntentFilter filter=new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         filter.addAction(ACTION_NOTIFICATION);
         filter.addAction(ACTION_MEDIA);
+        filter.addAction(ACTION_TIMER);
         filter.addAction(Intent.ACTION_HEADSET_PLUG);
         filter.addAction("android.intent.action.PHONE_STATE");
         updates=new BroadcastReceiver() {
@@ -81,6 +85,23 @@ public class IslandOverlayService extends Service {
                         titleView.setText("AURA ISLAND"); detailView.setText("Ready for live activities");
                     }
                     mediaControls.setVisibility(View.GONE);
+                } else if(ACTION_TIMER.equals(intent.getAction())) {
+                    long seconds=intent.getLongExtra("seconds",0);
+                    if(countdown!=null) countdown.cancel();
+                    if(seconds>0) {
+                        countdown=new CountDownTimer(seconds*1000,1000) {
+                            public void onTick(long left) {
+                                long total=left/1000;
+                                titleView.setText("◷  Timer  "+String.format(java.util.Locale.getDefault(),"%02d:%02d",total/60,total%60));
+                                detailView.setText("Countdown running");
+                                mediaControls.setVisibility(View.GONE);
+                            }
+                            public void onFinish() {
+                                titleView.setText("⏰  Timer finished");
+                                detailView.setText("Your countdown is complete");
+                            }
+                        }.start();
+                    }
                 } else if(ACTION_MEDIA.equals(intent.getAction())) {
                     String title=intent.getStringExtra(EXTRA_TITLE);
                     String artist=intent.getStringExtra(EXTRA_TEXT);
@@ -214,6 +235,7 @@ public class IslandOverlayService extends Service {
     private int dp(float v){return (int)(v*getResources().getDisplayMetrics().density+.5f);}
     @Override public int onStartCommand(Intent intent,int flags,int startId){return START_STICKY;}
     @Override public void onDestroy(){
+        if(countdown!=null) countdown.cancel();
         if(updates!=null) try{unregisterReceiver(updates);}catch(Exception ignored){}
         if(capsule!=null && windowManager!=null) try{windowManager.removeView(capsule);}catch(Exception ignored){}
         super.onDestroy();
