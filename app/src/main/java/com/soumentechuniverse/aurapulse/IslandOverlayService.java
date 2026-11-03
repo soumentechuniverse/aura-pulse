@@ -57,6 +57,7 @@ public class IslandOverlayService extends Service {
         filter.addAction(ACTION_TIMER);
         filter.addAction(Intent.ACTION_HEADSET_PLUG);
         filter.addAction("android.intent.action.PHONE_STATE");
+        filter.addAction("android.media.VOLUME_CHANGED_ACTION");
         updates=new BroadcastReceiver() {
             @Override public void onReceive(Context context,Intent intent) {
                 if(Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction())) {
@@ -198,7 +199,7 @@ public class IslandOverlayService extends Service {
         capsule.setGravity(Gravity.CENTER);
         capsule.setPadding(dp(22),dp(11),dp(22),dp(9));
         GradientDrawable shape=new GradientDrawable();
-        shape.setColor(Color.rgb(0,0,0)); shape.setCornerRadius(dp(30));
+        shape.setColor(Color.rgb(0,0,0)); shape.setCornerRadius(dp(getSharedPreferences("aura_settings",MODE_PRIVATE).getInt("corner_radius",30)));
         shape.setStroke(dp(1),Color.rgb(38,48,62)); capsule.setBackground(shape);
         titleView=new TextView(this); titleView.setText("AURA ISLAND"); titleView.setTextColor(Color.rgb(101,232,255));
         titleView.setTextSize(12); titleView.setTypeface(Typeface.DEFAULT,Typeface.BOLD); titleView.setMaxLines(1);
@@ -224,7 +225,7 @@ public class IslandOverlayService extends Service {
             android.graphics.PixelFormat.TRANSLUCENT);
         params.gravity=Gravity.TOP|Gravity.CENTER_HORIZONTAL;
         params.width=dp(getSharedPreferences("aura_settings",MODE_PRIVATE).getInt("capsule_width",240));
-        params.y=dp(10);
+        params.y=dp(getSharedPreferences("aura_settings",MODE_PRIVATE).getInt("position_y",10));
         windowManager.addView(capsule,params);
         capsule.setOnClickListener(v -> {
             if(showingNotification) {
