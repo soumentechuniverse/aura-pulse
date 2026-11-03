@@ -141,6 +141,8 @@ public class IslandOverlayService extends Service {
         else registerReceiver(updates,filter);
         Intent battery=registerReceiver(null,new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         if(battery!=null) updates.onReceive(this,battery);
+        Intent headset=registerReceiver(null,new IntentFilter(Intent.ACTION_HEADSET_PLUG));
+        if(headset!=null) updates.onReceive(this,headset);
     }
 
 
@@ -188,6 +190,7 @@ public class IslandOverlayService extends Service {
     private void showQueuedNotification() {
         if(notificationQueue.isEmpty()) { showingNotification=false; return; }
         showingNotification=true;
+        capsule.setVisibility(View.VISIBLE);
         String[] item=notificationQueue.get(0);
         titleView.setText(item[0]);
         expanded=false;
