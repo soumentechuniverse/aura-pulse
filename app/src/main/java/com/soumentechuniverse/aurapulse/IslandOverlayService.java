@@ -11,6 +11,8 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.IBinder;
+import android.view.MotionEvent;
+import android.telephony.TelephonyManager;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
@@ -34,6 +36,8 @@ public class IslandOverlayService extends Service {
         IntentFilter filter=new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         filter.addAction(ACTION_NOTIFICATION);
         filter.addAction(ACTION_MEDIA);
+        filter.addAction(Intent.ACTION_HEADSET_PLUG);
+        filter.addAction("android.intent.action.PHONE_STATE");
         updates=new BroadcastReceiver() {
             @Override public void onReceive(Context context,Intent intent) {
                 if(Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction())) {
@@ -53,6 +57,21 @@ public class IslandOverlayService extends Service {
                         detailView.setText(body==null?"New notification":body);
                         mediaControls.setVisibility(View.GONE);
                     }
+                } else if(Intent.ACTION_HEADSET_PLUG.equals(intent.getAction())) {
+                    boolean plugged=intent.getIntExtra("state",0)==1;
+                    titleView.setText(plugged?"🎧  Headphones connected":"AURA ISLAND");
+                    detailView.setText(plugged?"Audio device connected":"Headphones disconnected");
+                    mediaControls.setVisibility(View.GONE);
+                } else if("android.intent.action.PHONE_STATE".equals(intent.getAction())) {
+                    String state=intent.getStringExtra(TelephonyManager.EXTRA_STATE);
+                    if(TelephonyManager.EXTRA_STATE_RINGING.equals(state)) {
+                        titleView.setText("☎  Incoming call"); detailView.setText("Your phone is ringing");
+                    } else if(TelephonyManager.EXTRA_STATE_OFFHOOK.equals(state)) {
+                        titleView.setText("☎  Call in progress"); detailView.setText("Tap to expand controls");
+                    } else if(TelephonyManager.EXTRA_STATE_IDLE.equals(state)) {
+                        titleView.setText("AURA ISLAND"); detailView.setText("Ready for live activities");
+                    }
+                    mediaControls.setVisibility(View.GONE);
                 } else if(ACTION_MEDIA.equals(intent.getAction())) {
                     String title=intent.getStringExtra(EXTRA_TITLE);
                     String artist=intent.getStringExtra(EXTRA_TEXT);
@@ -104,6 +123,25 @@ public class IslandOverlayService extends Service {
         params.gravity=Gravity.TOP|Gravity.CENTER_HORIZONTAL;
         params.y=dp(10);
         windowManager.addView(capsule,params);
+        capsule.setOnClickListener(v -> {
+            mediaControls.setVisibility(mediaControls.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE);
+        });
+        capsule.setOnLongClickListener(v -> { stopSelf(); return true; });
+        capsule.setOnTouchListener(new View.OnTouchListener() {
+            private int startX,startY; private float downX,downY;
+            @Override public boolean onTouch(View v,MotionEvent event) {
+                if(event.getAction()==MotionEvent.ACTION_DOWN) {
+                    startX=params.x; startY=params.y; downX=event.getRawX(); downY=event.getRawY(); return false;
+                }
+                if(event.getAction()==MotionEvent.ACTION_MOVE) {
+                    params.x=startX+(int)(event.getRawX()-downX);
+                    params.y=startY+(int)(event.getRawY()-downY);
+                    try{windowManager.updateViewLayout(capsule,params);}catch(Exception ignored){}
+                    return true;
+                }
+                return false;
+            }
+        });
     }
     private int dp(float v){return (int)(v*getResources().getDisplayMetrics().density+.5f);}
     @Override public int onStartCommand(Intent intent,int flags,int startId){return START_STICKY;}
