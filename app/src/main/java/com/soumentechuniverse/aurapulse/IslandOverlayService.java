@@ -43,6 +43,7 @@ public class IslandOverlayService extends Service {
     private final ArrayList<String[]> notificationQueue=new ArrayList<>();
     private boolean showingNotification=false;
     private boolean expanded=false;
+    private boolean chargingActive=false,headsetActive=false,callActive=false,mediaActive=false,timerActive=false;
     private CountDownTimer countdown;
 
     @Override public void onCreate() {
@@ -67,6 +68,7 @@ public class IslandOverlayService extends Service {
                     int pct=(level>=0 && scale>0)?(level*100/scale):-1;
                     int status=intent.getIntExtra(BatteryManager.EXTRA_STATUS,-1);
                     boolean charging=status==BatteryManager.BATTERY_STATUS_CHARGING || status==BatteryManager.BATTERY_STATUS_FULL;
+                    chargingActive=charging;
                     titleView.setText(charging?"⚡  Charging  •  "+pct+"%":"AURA ISLAND  •  "+pct+"% battery");
                     detailView.setText(charging?"Power connected":"Tap app to manage your island");
                     mediaControls.setVisibility(View.GONE);
@@ -75,11 +77,13 @@ public class IslandOverlayService extends Service {
                     String body=intent.getStringExtra(EXTRA_TEXT);
                     if(title!=null && !title.trim().isEmpty()) {
                         notificationQueue.add(new String[]{title,body==null?"New notification":body});
+                        capsule.setVisibility(View.VISIBLE);
                         saveQueue();
                         showQueuedNotification();
                     }
                 } else if(Intent.ACTION_HEADSET_PLUG.equals(intent.getAction())) {
                     boolean plugged=intent.getIntExtra("state",0)==1;
+                    headsetActive=plugged;
                     titleView.setText(plugged?"🎧  Headphones connected":"AURA ISLAND");
                     detailView.setText(plugged?"Audio device connected":"Headphones disconnected");
                     mediaControls.setVisibility(View.GONE);
@@ -97,6 +101,7 @@ public class IslandOverlayService extends Service {
                     long seconds=intent.getLongExtra("seconds",0);
                     if(countdown!=null) countdown.cancel();
                     if(seconds>0) {
+                        timerActive=true; capsule.setVisibility(View.VISIBLE);
                         countdown=new CountDownTimer(seconds*1000,1000) {
                             public void onTick(long left) {
                                 long total=left/1000;
@@ -105,6 +110,7 @@ public class IslandOverlayService extends Service {
                                 mediaControls.setVisibility(View.GONE);
                             }
                             public void onFinish() {
+                                timerActive=false;
                                 titleView.setText("⏰  Timer finished");
                                 detailView.setText("Your countdown is complete");
                             }
@@ -120,6 +126,8 @@ public class IslandOverlayService extends Service {
                 } else if(ACTION_MEDIA.equals(intent.getAction())) {
                     String title=intent.getStringExtra(EXTRA_TITLE);
                     String artist=intent.getStringExtra(EXTRA_TEXT);
+                    mediaActive=title!=null && !title.isEmpty();
+                    if(mediaActive) capsule.setVisibility(View.VISIBLE); else hideIfIdle();
                     titleView.setText("♫  "+(title==null?"Now Playing":title));
                     detailView.setText(artist==null?"Music":artist);
                     mediaControls.setVisibility(View.VISIBLE);
@@ -192,8 +200,12 @@ public class IslandOverlayService extends Service {
                 showingNotification=false;
                 titleView.setText("AURA ISLAND");
                 detailView.setText("Notification dismissed");
+                hideIfIdle();
             } else showQueuedNotification();
         }
+    }
+    private void hideIfIdle() {
+        if(notificationQueue.isEmpty() && !chargingActive && !headsetActive && !callActive && !mediaActive && !timerActive) capsule.setVisibility(View.GONE);
     }
     private TextView controlButton(String label, Runnable action) {
         TextView button=new TextView(this);
@@ -238,6 +250,7 @@ public class IslandOverlayService extends Service {
         params.width=dp(getSharedPreferences("aura_settings",MODE_PRIVATE).getInt("capsule_width",240));
         params.y=dp(positionMode==1?0:10);
         windowManager.addView(capsule,params);
+        capsule.setVisibility(View.GONE);
         capsule.setOnClickListener(v -> {
             if(showingNotification) {
                 expanded=!expanded;
