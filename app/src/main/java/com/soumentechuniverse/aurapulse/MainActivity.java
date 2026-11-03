@@ -97,7 +97,7 @@ public class MainActivity extends Activity {
         p.addView(text("Accent colour",16,textColor(),true));LinearLayout c=new LinearLayout(this);button(c,"Cyan",()->setInt("accent",Color.rgb(101,232,255)));button(c,"Purple",()->setInt("accent",Color.rgb(190,130,255)));button(c,"Green",()->setInt("accent",Color.rgb(100,240,170)));p.addView(c);gap(p,10);
         LinearLayout c2=new LinearLayout(this);button(c2,"Gold",()->setInt("accent",Color.rgb(255,204,102)));button(c2,"Pink",()->setInt("accent",Color.rgb(255,130,180)));button(c2,"Blue",()->setInt("accent",Color.rgb(100,165,255)));p.addView(c2);gap(p,10);
         p.addView(text("Capsule shape",16,textColor(),true));LinearLayout s=new LinearLayout(this);button(s,"Pill",()->setInt("corner_radius",40));button(s,"Rounded",()->setInt("corner_radius",22));button(s,"Soft",()->setInt("corner_radius",14));p.addView(s);gap(p,10);
-        p.addView(text("Position",16,textColor(),true));LinearLayout pos=new LinearLayout(this);button(pos,"Top",()->setInt("position_mode",0));button(pos,"Center",()->setInt("position_mode",1));button(pos,"Bottom",()->setInt("position_mode",2));p.addView(pos);gap(p,10);
+        p.addView(text("Camera placement",16,textColor(),true));gap(p,5);p.addView(text("Fixed • Top centre • Front camera aligned. The capsule cannot be dragged or moved.",12,mutedColor(),false));gap(p,10);
         p.addView(text("Theme",16,textColor(),true));LinearLayout th=new LinearLayout(this);button(th,"Dark",()->{prefs.edit().putBoolean("light_theme",false).apply();restartUi();});button(th,"Light",()->{prefs.edit().putBoolean("light_theme",true).apply();restartUi();});p.addView(th);
         action(root,"↻","Refresh capsule","Apply your appearance settings",this::refreshIsland);
     }
@@ -129,7 +129,24 @@ public class MainActivity extends Activity {
     private void refreshIsland(){if(Build.VERSION.SDK_INT>=23&&Settings.canDrawOverlays(this)){stopService(new Intent(this,IslandOverlayService.class));startService(new Intent(this,IslandOverlayService.class));}}
     private void showTimerDialog(){EditText input=new EditText(this);input.setHint("Minutes (e.g. 5)");input.setInputType(InputType.TYPE_CLASS_NUMBER);new AlertDialog.Builder(this).setTitle("AURA Countdown").setMessage("Choose 1 to 1440 minutes").setView(input).setNegativeButton("Cancel",null).setPositiveButton("Start",(d,w)->{try{long m=Long.parseLong(input.getText().toString().trim());if(m<1||m>1440)throw new Exception();Intent i=new Intent(this,IslandOverlayService.class);i.setAction(IslandOverlayService.ACTION_TIMER);i.putExtra("seconds",m*60);if(Build.VERSION.SDK_INT>=23&&!Settings.canDrawOverlays(this))requestOverlay();else startService(i);}catch(Exception e){Toast.makeText(this,"Enter 1 to 1440 minutes",Toast.LENGTH_SHORT).show();}}).show();}
     private void requestOverlay(){if(Build.VERSION.SDK_INT>=23&&!Settings.canDrawOverlays(this)){Intent i=new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:"+getPackageName()));startActivity(i);}else Toast.makeText(this,"Display access is already enabled",Toast.LENGTH_SHORT).show();}
-    private void startIsland(){if(Build.VERSION.SDK_INT>=23&&!Settings.canDrawOverlays(this)){requestOverlay();return;}startService(new Intent(this,IslandOverlayService.class));Toast.makeText(this,"AURA Island started",Toast.LENGTH_SHORT).show();}
+    private boolean hasNotificationAccess(){
+        String enabled=Settings.Secure.getString(getContentResolver(),"enabled_notification_listeners");
+        return enabled!=null && enabled.contains(getPackageName());
+    }
+    private void startIsland(){
+        if(Build.VERSION.SDK_INT>=23&&!Settings.canDrawOverlays(this)){requestOverlay();return;}
+        if(!hasNotificationAccess()){
+            Toast.makeText(this,"Please allow AURA PULSE in Notification Access, then tap Start again.",Toast.LENGTH_LONG).show();
+            try{startActivity(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"));}catch(Exception ignored){}
+            return;
+        }
+        if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},901); 
+        }
+        if(Build.VERSION.SDK_INT>=26)startForegroundService(new Intent(this,IslandOverlayService.class));
+        else startService(new Intent(this,IslandOverlayService.class));
+        Toast.makeText(this,"AURA Island started",Toast.LENGTH_SHORT).show();
+    }
     private void openAppDetails(){Intent i=new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+getPackageName()));startActivity(i);}
     private void openSettings(String action){try{startActivity(new Intent(action));}catch(Exception e){openAppDetails();}}
 }
