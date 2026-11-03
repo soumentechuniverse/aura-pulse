@@ -12,6 +12,7 @@ import android.os.BatteryManager;
 import android.os.Build;
 import android.os.IBinder;
 import android.media.AudioManager;
+import java.util.ArrayList;
 import android.content.SharedPreferences;
 import android.view.MotionEvent;
 import android.telephony.TelephonyManager;
@@ -30,6 +31,8 @@ public class IslandOverlayService extends Service {
     private LinearLayout capsule, mediaControls;
     private TextView titleView, detailView;
     private BroadcastReceiver updates;
+    private final ArrayList<String[]> notificationQueue=new ArrayList<>();
+    private boolean showingNotification=false;
 
     @Override public void onCreate() {
         super.onCreate();
@@ -55,9 +58,8 @@ public class IslandOverlayService extends Service {
                     String title=intent.getStringExtra(EXTRA_TITLE);
                     String body=intent.getStringExtra(EXTRA_TEXT);
                     if(title!=null && !title.trim().isEmpty()) {
-                        titleView.setText(title);
-                        detailView.setText(body==null?"New notification":body);
-                        mediaControls.setVisibility(View.GONE);
+                        notificationQueue.add(new String[]{title,body==null?"New notification":body});
+                        showQueuedNotification();
                     }
                 } else if(Intent.ACTION_HEADSET_PLUG.equals(intent.getAction())) {
                     boolean plugged=intent.getIntExtra("state",0)==1;
@@ -89,6 +91,24 @@ public class IslandOverlayService extends Service {
         if(battery!=null) updates.onReceive(this,battery);
     }
 
+    private void showQueuedNotification() {
+        if(notificationQueue.isEmpty()) { showingNotification=false; return; }
+        showingNotification=true;
+        String[] item=notificationQueue.get(0);
+        titleView.setText(item[0]);
+        detailView.setText(item[1]+(notificationQueue.size()>1?"  •  +"+(notificationQueue.size()-1):""));
+        mediaControls.setVisibility(View.GONE);
+    }
+    private void dismissCurrentNotification() {
+        if(showingNotification && !notificationQueue.isEmpty()) {
+            notificationQueue.remove(0);
+            if(notificationQueue.isEmpty()) {
+                showingNotification=false;
+                titleView.setText("AURA ISLAND");
+                detailView.setText("Notification dismissed");
+            } else showQueuedNotification();
+        }
+    }
     private TextView controlButton(String label, Runnable action) {
         TextView button=new TextView(this);
         button.setText(label); button.setTextColor(Color.WHITE); button.setTextSize(17);
@@ -132,7 +152,10 @@ public class IslandOverlayService extends Service {
         params.y=dp(10);
         windowManager.addView(capsule,params);
         capsule.setOnClickListener(v -> {
-            mediaControls.setVisibility(mediaControls.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE);
+            if(showingNotification) {
+                if(notificationQueue.size()>1) { notificationQueue.add(notificationQueue.remove(0)); showQueuedNotification(); }
+                else dismissCurrentNotification();
+            } else mediaControls.setVisibility(mediaControls.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE);
         });
         capsule.setOnLongClickListener(v -> { stopSelf(); return true; });
         capsule.setOnTouchListener(new View.OnTouchListener() {
