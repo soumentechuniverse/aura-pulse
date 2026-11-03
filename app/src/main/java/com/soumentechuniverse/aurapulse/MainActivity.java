@@ -67,7 +67,7 @@ public class MainActivity extends Activity {
             Toast.makeText(this,"Please allow display over other apps first",Toast.LENGTH_LONG).show(); requestOverlay(); return;
         }
         Intent i=new Intent(this,IslandOverlayService.class);
-        if(Build.VERSION.SDK_INT>=26) startForegroundService(i); else startService(i);
+        startService(i);
         Toast.makeText(this,"AURA Island started",Toast.LENGTH_SHORT).show();
     }
     private void addAction(LinearLayout root,String n,String title,String sub,View.OnClickListener click) {
