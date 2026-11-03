@@ -17,6 +17,9 @@ import android.os.BatteryManager;
 import android.os.Build;
 import android.os.IBinder;
 import android.media.AudioManager;
+import android.media.AudioDeviceInfo;
+import android.media.AudioDeviceCallback;
+import android.os.Handler;
 import android.os.CountDownTimer;
 import java.util.ArrayList;
 import org.json.JSONArray;
@@ -45,11 +48,14 @@ public class IslandOverlayService extends Service {
     private boolean expanded=false;
     private boolean chargingActive=false,headsetActive=false,callActive=false,mediaActive=false,timerActive=false;
     private CountDownTimer countdown;
+    private AudioManager audioManager;
+    private AudioDeviceCallback audioCallback;
 
     @Override public void onCreate() {
         super.onCreate();
         startIslandForeground();
         windowManager=(WindowManager)getSystemService(WINDOW_SERVICE);
+        registerAudioDeviceMonitoring();
         createCapsule();
         restoreQueue();
         if(!notificationQueue.isEmpty()) showQueuedNotification();
@@ -102,6 +108,7 @@ public class IslandOverlayService extends Service {
                 } else if(ACTION_TIMER.equals(intent.getAction())) {
                     long seconds=intent.getLongExtra("seconds",0);
                     if(countdown!=null) countdown.cancel();
+        if(Build.VERSION.SDK_INT>=23 && audioManager!=null && audioCallback!=null) audioManager.unregisterAudioDeviceCallback(audioCallback);
                     if(seconds>0) {
                         timerActive=true; capsule.setVisibility(View.VISIBLE);
                         countdown=new CountDownTimer(seconds*1000,1000) {
@@ -146,6 +153,32 @@ public class IslandOverlayService extends Service {
     }
 
 
+
+    private void registerAudioDeviceMonitoring() {
+        if(Build.VERSION.SDK_INT>=23) {
+            audioManager=(AudioManager)getSystemService(AUDIO_SERVICE);
+            audioCallback=new AudioDeviceCallback() {
+                @Override public void onAudioDevicesAdded(AudioDeviceInfo[] devices) { updateHeadphoneState(); }
+                @Override public void onAudioDevicesRemoved(AudioDeviceInfo[] devices) { updateHeadphoneState(); }
+            };
+            audioManager.registerAudioDeviceCallback(audioCallback,new Handler(getMainLooper()));
+            updateHeadphoneState();
+        }
+    }
+    private void updateHeadphoneState() {
+        if(Build.VERSION.SDK_INT<23 || audioManager==null) return;
+        boolean connected=false;
+        for(AudioDeviceInfo device:audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+            int type=device.getType();
+            if(type==AudioDeviceInfo.TYPE_WIRED_HEADPHONES || type==AudioDeviceInfo.TYPE_WIRED_HEADSET || type==AudioDeviceInfo.TYPE_BLUETOOTH_A2DP || type==AudioDeviceInfo.TYPE_BLUETOOTH_SCO || (Build.VERSION.SDK_INT>=31 && type==AudioDeviceInfo.TYPE_BLE_HEADSET)) { connected=true; break; }
+        }
+        headsetActive=connected;
+        if(connected) {
+            capsule.setVisibility(View.VISIBLE);
+            titleView.setText("🎧  Headphones connected");
+            detailView.setText("Audio device connected");
+        } else hideIfIdle();
+    }
 
     private void startIslandForeground() {
         final String channelId="aura_island_service";
