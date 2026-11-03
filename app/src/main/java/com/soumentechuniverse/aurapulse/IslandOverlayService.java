@@ -21,6 +21,7 @@ import android.media.AudioDeviceInfo;
 import android.media.AudioDeviceCallback;
 import android.os.Handler;
 import android.os.CountDownTimer;
+import android.os.SystemClock;
 import java.util.ArrayList;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -48,6 +49,8 @@ public class IslandOverlayService extends Service {
     private boolean expanded=false;
     private boolean chargingActive=false,headsetActive=false,callActive=false,mediaActive=false,timerActive=false;
     private CountDownTimer countdown;
+    private long timerEndElapsed=0;
+    private final Handler uiHandler=new Handler();
     private AudioManager audioManager;
     private AudioDeviceCallback audioCallback;
 
@@ -98,32 +101,21 @@ public class IslandOverlayService extends Service {
                 } else if("android.intent.action.PHONE_STATE".equals(intent.getAction())) {
                     String state=intent.getStringExtra(TelephonyManager.EXTRA_STATE);
                     if(TelephonyManager.EXTRA_STATE_RINGING.equals(state)) {
+                        callActive=true; showCapsuleAnimated();
                         titleView.setText("☎  Incoming call"); detailView.setText("Your phone is ringing");
                     } else if(TelephonyManager.EXTRA_STATE_OFFHOOK.equals(state)) {
+                        callActive=true; showCapsuleAnimated();
                         titleView.setText("☎  Call in progress"); detailView.setText("Tap to expand controls");
                     } else if(TelephonyManager.EXTRA_STATE_IDLE.equals(state)) {
+                        callActive=false;
                         titleView.setText("AURA ISLAND"); detailView.setText("Ready for live activities");
+                        hideIfIdle();
                     }
                     mediaControls.setVisibility(View.GONE);
                 } else if(ACTION_TIMER.equals(intent.getAction())) {
                     long seconds=intent.getLongExtra("seconds",0);
                     if(countdown!=null) countdown.cancel();
-                    if(seconds>0) {
-                        timerActive=true; showCapsuleAnimated();
-                        countdown=new CountDownTimer(seconds*1000,1000) {
-                            public void onTick(long left) {
-                                long total=left/1000;
-                                titleView.setText("◷  Timer  "+String.format(java.util.Locale.getDefault(),"%02d:%02d",total/60,total%60));
-                                detailView.setText("Countdown running");
-                                mediaControls.setVisibility(View.GONE);
-                            }
-                            public void onFinish() {
-                                timerActive=false;
-                                titleView.setText("⏰  Timer finished");
-                                detailView.setText("Your countdown is complete");
-                            }
-                        }.start();
-                    }
+                    if(seconds>0) startCountdown(seconds);
                 } else if("android.media.VOLUME_CHANGED_ACTION".equals(intent.getAction())) {
                     AudioManager audio=(AudioManager)getSystemService(AUDIO_SERVICE);
                     int current=audio==null?0:audio.getStreamVolume(AudioManager.STREAM_MUSIC);
@@ -149,9 +141,38 @@ public class IslandOverlayService extends Service {
         if(battery!=null) updates.onReceive(this,battery);
         Intent headset=registerReceiver(null,new IntentFilter(Intent.ACTION_HEADSET_PLUG));
         if(headset!=null) updates.onReceive(this,headset);
+        long savedEnd=getSharedPreferences("aura_settings",MODE_PRIVATE).getLong("timer_end_elapsed",0L);
+        long remaining=savedEnd-SystemClock.elapsedRealtime();
+        if(remaining>0) startCountdown(Math.max(1L,(remaining+999L)/1000L));
+        else getSharedPreferences("aura_settings",MODE_PRIVATE).edit().remove("timer_end_elapsed").apply();
     }
 
 
+
+    private void startCountdown(long seconds) {
+        if (countdown != null) countdown.cancel();
+        timerActive = true;
+        timerEndElapsed = SystemClock.elapsedRealtime() + seconds * 1000L;
+        getSharedPreferences("aura_settings", MODE_PRIVATE).edit()
+            .putLong("timer_end_elapsed", timerEndElapsed).apply();
+        showCapsuleAnimated();
+        countdown = new CountDownTimer(seconds * 1000L, 1000L) {
+            public void onTick(long left) {
+                long total = left / 1000L;
+                titleView.setText("◷  Timer  " + String.format(java.util.Locale.getDefault(), "%02d:%02d", total / 60, total % 60));
+                detailView.setText("Countdown running");
+                mediaControls.setVisibility(View.GONE);
+            }
+            public void onFinish() {
+                timerActive = false;
+                timerEndElapsed = 0;
+                getSharedPreferences("aura_settings", MODE_PRIVATE).edit().remove("timer_end_elapsed").apply();
+                titleView.setText("⏰  Timer finished");
+                detailView.setText("Your countdown is complete");
+                uiHandler.postDelayed(() -> hideIfIdle(), 5000L);
+            }
+        }.start();
+    }
 
     private void registerAudioDeviceMonitoring() {
         if(Build.VERSION.SDK_INT>=23) {
@@ -325,6 +346,16 @@ public class IslandOverlayService extends Service {
                     float dx=event.getRawX()-downX;
                     if(Math.abs(dx)>dp(85) && showingNotification) { dismissCurrentNotification(); return true; }
                     float dy=event.getRawY()-downY;
+                    if(dy < -dp(55) && Math.abs(dy)>Math.abs(dx)) {
+                        expanded=false;
+                        detailView.setMaxLines(1);
+                        mediaControls.setVisibility(View.GONE);
+                        if(showingNotification && !notificationQueue.isEmpty()) {
+                            String[] item=notificationQueue.get(0);
+                            detailView.setText(item[1]+(notificationQueue.size()>1?"  •  +"+(notificationQueue.size()-1):""));
+                        }
+                        return true;
+                    }
                     if(Math.abs(dx)<dp(10) && Math.abs(dy)<dp(10)) {
                         if(System.currentTimeMillis()-downAt>600) stopSelf();
                         else capsule.performClick();
@@ -349,6 +380,7 @@ public class IslandOverlayService extends Service {
     }
     @Override public void onDestroy(){
         if(countdown!=null) countdown.cancel();
+        uiHandler.removeCallbacksAndMessages(null);
         if(updates!=null) try{unregisterReceiver(updates);}catch(Exception ignored){}
         if(capsule!=null && windowManager!=null) try{windowManager.removeView(capsule);}catch(Exception ignored){}
         super.onDestroy();
