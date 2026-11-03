@@ -106,6 +106,16 @@ public class MainActivity extends Activity {
         addSmallButton(colors,"Purple",v->{p.edit().putInt("accent",Color.rgb(190,130,255)).apply();refreshIsland();});
         addSmallButton(colors,"Green",v->{p.edit().putInt("accent",Color.rgb(100,240,170)).apply();refreshIsland();});
         row.addView(colors); gap(row,8);
+        LinearLayout shapes=new LinearLayout(this); shapes.setOrientation(LinearLayout.HORIZONTAL);
+        addSmallButton(shapes,"Pill",v->{p.edit().putInt("corner_radius",40).apply();refreshIsland();});
+        addSmallButton(shapes,"Rounded",v->{p.edit().putInt("corner_radius",22).apply();refreshIsland();});
+        addSmallButton(shapes,"Soft",v->{p.edit().putInt("corner_radius",14).apply();refreshIsland();});
+        row.addView(shapes); gap(row,8);
+        LinearLayout positions=new LinearLayout(this); positions.setOrientation(LinearLayout.HORIZONTAL);
+        addSmallButton(positions,"Top",v->{p.edit().putInt("position_y",10).apply();refreshIsland();});
+        addSmallButton(positions,"Lower",v->{p.edit().putInt("position_y",65).apply();refreshIsland();});
+        addSmallButton(positions,"Bottom",v->{p.edit().putInt("position_y",120).apply();refreshIsland();});
+        row.addView(positions); gap(row,8);
         LinearLayout theme=new LinearLayout(this); theme.setOrientation(LinearLayout.HORIZONTAL);
         addSmallButton(theme,"Dark",v->{p.edit().putBoolean("light_theme",false).apply();lightTheme=false;buildScreen();});
         addSmallButton(theme,"Light",v->{p.edit().putBoolean("light_theme",true).apply();lightTheme=true;buildScreen();});
