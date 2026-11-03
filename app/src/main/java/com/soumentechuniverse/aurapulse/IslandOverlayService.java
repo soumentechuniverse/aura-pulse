@@ -57,6 +57,7 @@ public class IslandOverlayService extends Service {
     @Override public void onCreate() {
         super.onCreate();
         startIslandForeground();
+        getSharedPreferences("aura_settings",MODE_PRIVATE).edit().putBoolean("island_service_running",true).apply();
         windowManager=(WindowManager)getSystemService(WINDOW_SERVICE);
         createCapsule();
         registerAudioDeviceMonitoring();
@@ -262,7 +263,7 @@ public class IslandOverlayService extends Service {
         try {
             String raw=getSharedPreferences("aura_settings",MODE_PRIVATE).getString("notification_queue","[]");
             JSONArray array=new JSONArray(raw);
-            for(int i=0;i<array.length();i++) {
+            for(int i=Math.max(0,array.length()-30);i<array.length();i++) {
                 JSONObject item=array.getJSONObject(i);
                 notificationQueue.add(new String[]{item.optString("title"),item.optString("body")});
             }
@@ -428,6 +429,7 @@ public class IslandOverlayService extends Service {
         uiHandler.removeCallbacksAndMessages(null);
         if(updates!=null) try{unregisterReceiver(updates);}catch(Exception ignored){}
         if(capsule!=null && windowManager!=null) try{windowManager.removeView(capsule);}catch(Exception ignored){}
+        getSharedPreferences("aura_settings",MODE_PRIVATE).edit().putBoolean("island_service_running",false).apply();
         super.onDestroy();
     }
     @Override public IBinder onBind(Intent intent){return null;}
