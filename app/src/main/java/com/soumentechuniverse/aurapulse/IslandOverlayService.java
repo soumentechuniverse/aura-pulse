@@ -109,6 +109,13 @@ public class IslandOverlayService extends Service {
                             }
                         }.start();
                     }
+                } else if("android.media.VOLUME_CHANGED_ACTION".equals(intent.getAction())) {
+                    AudioManager audio=(AudioManager)getSystemService(AUDIO_SERVICE);
+                    int current=audio==null?0:audio.getStreamVolume(AudioManager.STREAM_MUSIC);
+                    int max=audio==null?1:audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                    titleView.setText("♫  Media volume  "+current+"/"+max);
+                    detailView.setText("Use island controls to adjust volume");
+                    mediaControls.setVisibility(View.VISIBLE);
                 } else if(ACTION_MEDIA.equals(intent.getAction())) {
                     String title=intent.getStringExtra(EXTRA_TITLE);
                     String artist=intent.getStringExtra(EXTRA_TEXT);
