@@ -78,13 +78,13 @@ public class IslandOverlayService extends Service {
                     titleView.setText(charging?"⚡  Charging  •  "+pct+"%":"AURA ISLAND  •  "+pct+"% battery");
                     detailView.setText(charging?"Power connected":"Tap app to manage your island");
                     mediaControls.setVisibility(View.GONE);
-                    if(charging) capsule.setVisibility(View.VISIBLE); else hideIfIdle();
+                    if(charging) showCapsuleAnimated(); else hideIfIdle();
                 } else if(ACTION_NOTIFICATION.equals(intent.getAction())) {
                     String title=intent.getStringExtra(EXTRA_TITLE);
                     String body=intent.getStringExtra(EXTRA_TEXT);
                     if(title!=null && !title.trim().isEmpty()) {
                         notificationQueue.add(new String[]{title,body==null?"New notification":body});
-                        capsule.setVisibility(View.VISIBLE);
+                        showCapsuleAnimated();
                         saveQueue();
                         showQueuedNotification();
                     }
@@ -94,7 +94,7 @@ public class IslandOverlayService extends Service {
                     titleView.setText(plugged?"🎧  Headphones connected":"AURA ISLAND");
                     detailView.setText(plugged?"Audio device connected":"Headphones disconnected");
                     mediaControls.setVisibility(View.GONE);
-                    if(plugged) capsule.setVisibility(View.VISIBLE); else hideIfIdle();
+                    if(plugged) showCapsuleAnimated(); else hideIfIdle();
                 } else if("android.intent.action.PHONE_STATE".equals(intent.getAction())) {
                     String state=intent.getStringExtra(TelephonyManager.EXTRA_STATE);
                     if(TelephonyManager.EXTRA_STATE_RINGING.equals(state)) {
@@ -109,7 +109,7 @@ public class IslandOverlayService extends Service {
                     long seconds=intent.getLongExtra("seconds",0);
                     if(countdown!=null) countdown.cancel();
                     if(seconds>0) {
-                        timerActive=true; capsule.setVisibility(View.VISIBLE);
+                        timerActive=true; showCapsuleAnimated();
                         countdown=new CountDownTimer(seconds*1000,1000) {
                             public void onTick(long left) {
                                 long total=left/1000;
@@ -128,7 +128,7 @@ public class IslandOverlayService extends Service {
                     AudioManager audio=(AudioManager)getSystemService(AUDIO_SERVICE);
                     int current=audio==null?0:audio.getStreamVolume(AudioManager.STREAM_MUSIC);
                     int max=audio==null?1:audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-                    capsule.setVisibility(View.VISIBLE);
+                    showCapsuleAnimated();
                     titleView.setText("♫  Media volume  "+current+"/"+max);
                     detailView.setText("Use island controls to adjust volume");
                     mediaControls.setVisibility(View.VISIBLE);
@@ -136,7 +136,7 @@ public class IslandOverlayService extends Service {
                     String title=intent.getStringExtra(EXTRA_TITLE);
                     String artist=intent.getStringExtra(EXTRA_TEXT);
                     mediaActive=title!=null && !title.isEmpty();
-                    if(mediaActive) capsule.setVisibility(View.VISIBLE); else hideIfIdle();
+                    if(mediaActive) showCapsuleAnimated(); else hideIfIdle();
                     titleView.setText("♫  "+(title==null?"Now Playing":title));
                     detailView.setText(artist==null?"Music":artist);
                     mediaControls.setVisibility(View.VISIBLE);
@@ -173,7 +173,7 @@ public class IslandOverlayService extends Service {
         }
         headsetActive=connected;
         if(connected) {
-            capsule.setVisibility(View.VISIBLE);
+            showCapsuleAnimated();
             titleView.setText("🎧  Headphones connected");
             detailView.setText("Audio device connected");
         } else hideIfIdle();
@@ -222,7 +222,7 @@ public class IslandOverlayService extends Service {
     private void showQueuedNotification() {
         if(notificationQueue.isEmpty()) { showingNotification=false; return; }
         showingNotification=true;
-        capsule.setVisibility(View.VISIBLE);
+        showCapsuleAnimated();
         String[] item=notificationQueue.get(0);
         titleView.setText(item[0]);
         expanded=false;
@@ -240,6 +240,18 @@ public class IslandOverlayService extends Service {
                 detailView.setText("Notification dismissed");
                 hideIfIdle();
             } else showQueuedNotification();
+        }
+    }
+    private void showCapsuleAnimated() {
+        if (capsule == null) return;
+        boolean wasHidden = capsule.getVisibility() != View.VISIBLE;
+        capsule.setVisibility(View.VISIBLE);
+        if (wasHidden) {
+            capsule.setAlpha(0f);
+            capsule.setScaleX(0.88f);
+            capsule.setScaleY(0.88f);
+            capsule.animate().alpha(1f).scaleX(1f).scaleY(1f)
+                .setDuration(220).start();
         }
     }
     private void hideIfIdle() {
