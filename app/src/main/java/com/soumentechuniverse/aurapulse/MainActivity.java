@@ -135,7 +135,8 @@ public class MainActivity extends Activity {
         if(shown==0) root.addView(label("No launchable apps found.",12,Color.LTGRAY,false));
         root.addView(label("Checked apps are blocked. Up to 35 installed apps are shown here.",11,Color.rgb(133,146,165),false));
     }
-\n    private void requestOverlay() {
+
+    private void requestOverlay() {
         if(Build.VERSION.SDK_INT>=23 && !Settings.canDrawOverlays(this)) {
             Intent i=new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:"+getPackageName()));
             startActivity(i);
