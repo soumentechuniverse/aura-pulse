@@ -233,9 +233,10 @@ public class IslandOverlayService extends Service {
             WindowManager.LayoutParams.WRAP_CONTENT,WindowManager.LayoutParams.WRAP_CONTENT,type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             android.graphics.PixelFormat.TRANSLUCENT);
-        params.gravity=Gravity.TOP|Gravity.CENTER_HORIZONTAL;
+        int positionMode=getSharedPreferences("aura_settings",MODE_PRIVATE).getInt("position_mode",0);
+        params.gravity=(positionMode==2?Gravity.BOTTOM:positionMode==1?Gravity.CENTER_VERTICAL:Gravity.TOP)|Gravity.CENTER_HORIZONTAL;
         params.width=dp(getSharedPreferences("aura_settings",MODE_PRIVATE).getInt("capsule_width",240));
-        params.y=dp(getSharedPreferences("aura_settings",MODE_PRIVATE).getInt("position_y",10));
+        params.y=dp(positionMode==1?0:10);
         windowManager.addView(capsule,params);
         capsule.setOnClickListener(v -> {
             if(showingNotification) {
